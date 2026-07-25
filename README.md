@@ -8,9 +8,9 @@
   <img src="https://img.shields.io/badge/License-MIT-c084fc?style=for-the-badge" alt="License MIT" />
 </p>
 
-> 🎮 **Live Demo 在线体验**: [https://marcuslzy0103-bit.github.io/AboutMe/](https://marcuslzy0103-bit.github.io/AboutMe/)
+> 🎮 **Live Demo 在线体验**: [https://marcuslzy0103-bit.github.io/CSGO-ESPORT/](https://marcuslzy0103-bit.github.io/CSGO-ESPORT/)
 >
-> 📦 **GitHub 源码仓库**: [https://github.com/marcuslzy0103-bit/AboutMe](https://github.com/marcuslzy0103-bit/AboutMe)
+> 📦 **GitHub 源码仓库**: [https://github.com/marcuslzy0103-bit/CSGO-ESPORT](https://github.com/marcuslzy0103-bit/CSGO-ESPORT)
 
 **COUNTER-MANAGER 2026** 是一款灵感源自 EA Sports FC / Football Manager 职业经理模式的 **CS:GO / CS2 电子竞技战队经理模拟 Web 游戏**。
 
