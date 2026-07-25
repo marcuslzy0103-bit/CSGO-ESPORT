@@ -822,7 +822,7 @@ function renderRankings() {
 }
 
 /* ==========================================================================
-   8. 2D LIVE DUST2 RADAR VISUALIZER — DUST II 专属战术雷达引擎
+   8. 2D LIVE DUST2 RADAR VISUALIZER — DUST II 专属高细节战术雷达引擎
    ========================================================================== */
 let radarCanvas = null;
 let radarCtx = null;
@@ -833,28 +833,30 @@ let radarEntities = {
   ts: [],
   tracers: [],
   smokes: [],
+  flashes: [],
   c4: { active: false, x: 0, y: 0, plantedAt: null, timer: 0 },
   roundPhase: 'PREP'
 };
 
 // 真实的 CS:GO DE_DUST2 战术区域精准坐标 (800 x 450 Canvas)
 const DUST2_ZONES = {
-  tSpawn:    { x: 100, y: 380, label: 'T SPAWN' },
-  outsideLong:{ x: 260, y: 380, label: 'OUTSIDE LONG' },
-  longDoors: { x: 420, y: 380, label: 'LONG DOORS' },
-  pit:       { x: 550, y: 400, label: 'PIT' },
-  aLong:     { x: 660, y: 320, label: 'A LONG' },
-  aSite:     { x: 680, y: 130, label: 'A SITE' },
-  goose:     { x: 740, y: 100, label: 'GOOSE' },
-  shortA:    { x: 530, y: 170, label: 'SHORT A' },
-  catwalk:   { x: 440, y: 220, label: 'CATWALK' },
-  mid:       { x: 350, y: 240, label: 'MID DOORS' },
-  suicide:   { x: 220, y: 280, label: 'SUICIDE' },
-  lowerTunnel:{ x: 250, y: 200, label: 'LOWER TUNNEL' },
-  upperTunnel:{ x: 150, y: 180, label: 'UPPER TUNNEL' },
-  bSite:     { x: 160, y: 90,  label: 'B SITE' },
-  bDoors:    { x: 280, y: 100, label: 'B DOORS' },
-  ctSpawn:   { x: 480, y: 90,  label: 'CT SPAWN' },
+  tSpawn:     { x: 90,  y: 380, label: 'T SPAWN' },
+  outsideLong:{ x: 250, y: 380, label: 'OUTSIDE LONG' },
+  longDoors:  { x: 390, y: 380, label: 'LONG DOORS' },
+  pit:        { x: 520, y: 410, label: 'PIT' },
+  aLong:      { x: 670, y: 320, label: 'A LONG' },
+  aSite:      { x: 690, y: 130, label: 'A SITE' },
+  goose:      { x: 745, y: 95,  label: 'GOOSE' },
+  shortA:     { x: 540, y: 160, label: 'SHORT A' },
+  catwalk:    { x: 440, y: 220, label: 'CATWALK' },
+  xbox:       { x: 375, y: 220, label: 'XBOX' },
+  mid:        { x: 350, y: 250, label: 'MID DOORS' },
+  suicide:    { x: 220, y: 290, label: 'SUICIDE' },
+  lowerTunnel:{ x: 260, y: 190, label: 'LOWER TUNNEL' },
+  upperTunnel:{ x: 140, y: 180, label: 'UPPER TUNNEL' },
+  bSite:      { x: 150, y: 90,  label: 'B SITE' },
+  bDoors:     { x: 270, y: 95,  label: 'B DOORS' },
+  ctSpawn:    { x: 480, y: 85,  label: 'CT SPAWN' },
 };
 
 function initRadarCanvas() {
@@ -886,6 +888,7 @@ function resetRadarPositions() {
     y: DUST2_ZONES.ctSpawn.y + (i * 20 - 40),
     targetX: DUST2_ZONES.ctSpawn.x,
     targetY: DUST2_ZONES.ctSpawn.y,
+    angle: 0,
     hp: 100, isAlive: true,
     color: '#38bdf8'
   }));
@@ -896,12 +899,14 @@ function resetRadarPositions() {
     y: DUST2_ZONES.tSpawn.y + (i * 20 - 40),
     targetX: DUST2_ZONES.tSpawn.x,
     targetY: DUST2_ZONES.tSpawn.y,
+    angle: 0,
     hp: 100, isAlive: true,
     color: '#f97316'
   }));
 
   radarEntities.tracers = [];
   radarEntities.smokes = [];
+  radarEntities.flashes = [];
   radarEntities.c4 = { active: false, x: 0, y: 0, plantedAt: null, timer: 0 };
   radarEntities.roundPhase = 'PREP';
 
@@ -915,21 +920,21 @@ function resetRadarPositions() {
   }
 }
 
-// 模拟 Dust2 经典进攻战术 (RUSH A LONG / PUSH B TUNNELS / MID TO SHORT)
+// 模拟 Dust2 经典战术 (RUSH A LONG / PUSH B TUNNELS / MID TO SHORT)
 function triggerRadarBattle(myWon) {
   if (!radarCtx) initRadarCanvas();
 
   const stratRoll = Math.random();
-  let stratName = 'A LONG RUSH';
+  let stratName = 'A LONG RUSH (A大攻势)';
   let targetSite = DUST2_ZONES.aSite;
   let tRoute = [DUST2_ZONES.outsideLong, DUST2_ZONES.longDoors, DUST2_ZONES.aLong];
 
   if (stratRoll < 0.35) {
-    stratName = 'B TUNNELS RUSH';
+    stratName = 'B TUNNELS RUSH (B洞冲锋)';
     targetSite = DUST2_ZONES.bSite;
     tRoute = [DUST2_ZONES.upperTunnel, DUST2_ZONES.bSite];
   } else if (stratRoll < 0.7) {
-    stratName = 'MID TO SHORT A';
+    stratName = 'MID TO SHORT A (中路转A小)';
     targetSite = DUST2_ZONES.aSite;
     tRoute = [DUST2_ZONES.suicide, DUST2_ZONES.catwalk, DUST2_ZONES.shortA];
   }
@@ -937,44 +942,45 @@ function triggerRadarBattle(myWon) {
   radarEntities.roundPhase = 'ENGAGE';
   const tag = document.getElementById('radar-status-tag');
   if (tag) {
-    tag.textContent = ` Dust2 战术: ${stratName}`;
+    tag.textContent = `⚡ Dust2 战术: ${stratName}`;
     tag.className = 'px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-400 font-bold animate-pulse';
   }
 
-  // 阶段 1: T 点沿 Dust2 战术路径推进
+  // T 队按战术路径推进
   radarEntities.ts.forEach((t, i) => {
     if (!t.isAlive) return;
     const waypoint = tRoute[Math.min(i, tRoute.length - 1)];
-    t.targetX = waypoint.x + Math.random() * 50 - 25;
-    t.targetY = waypoint.y + Math.random() * 50 - 25;
+    t.targetX = waypoint.x + Math.random() * 40 - 20;
+    t.targetY = waypoint.y + Math.random() * 40 - 20;
   });
 
-  // CT 点在 A 门、B 洞门、中门 AWP 位的经典防守点架枪
+  // CT 队在 Dust2 经典防守位架枪 (A包点、Goose、B包点、中门AWP位)
   radarEntities.cts.forEach((ct, i) => {
     if (!ct.isAlive) return;
-    if (i === 0) { ct.targetX = DUST2_ZONES.mid.x; ct.targetY = DUST2_ZONES.ctSpawn.y + 30; } // Mid AWP
-    else if (i <= 2) { ct.targetX = DUST2_ZONES.aSite.x + Math.random() * 40 - 20; ct.targetY = DUST2_ZONES.aSite.y + Math.random() * 40 - 20; }
-    else { ct.targetX = DUST2_ZONES.bSite.x + Math.random() * 40 - 20; ct.targetY = DUST2_ZONES.bSite.y + Math.random() * 40 - 20; }
+    if (i === 0) { ct.targetX = DUST2_ZONES.mid.x; ct.targetY = DUST2_ZONES.ctSpawn.y + 35; } // Mid AWP
+    else if (i <= 2) { ct.targetX = DUST2_ZONES.aSite.x + Math.random() * 50 - 25; ct.targetY = DUST2_ZONES.aSite.y + Math.random() * 50 - 25; }
+    else { ct.targetX = DUST2_ZONES.bSite.x + Math.random() * 50 - 25; ct.targetY = DUST2_ZONES.bSite.y + Math.random() * 50 - 25; }
   });
 
-  // 阶段 2: 进包点交火与 C4 爆破
+  // 包点交火与枪火弹道
   setTimeout(() => {
-    // 烟雾弹遮挡 (如 A 大封烟或 B 洞封烟)
-    radarEntities.smokes.push({ x: targetSite.x + (Math.random() * 30 - 15), y: targetSite.y + (Math.random() * 30 - 15), radius: 35, opacity: 0.8 });
+    // 烟雾弹遮挡
+    radarEntities.smokes.push({ x: targetSite.x + (Math.random() * 30 - 15), y: targetSite.y + (Math.random() * 30 - 15), radius: 35, opacity: 0.85 });
 
-    // T 进入包点
+    // 枪口火光
+    radarEntities.flashes.push({ x: targetSite.x + 10, y: targetSite.y - 10, radius: 15, opacity: 1.0 });
+
     radarEntities.ts.forEach(t => {
       if (t.isAlive) {
-        t.targetX = targetSite.x + Math.random() * 60 - 30;
-        t.targetY = targetSite.y + Math.random() * 60 - 30;
+        t.targetX = targetSite.x + Math.random() * 50 - 25;
+        t.targetY = targetSite.y + Math.random() * 50 - 25;
       }
     });
 
-    // 生成 Dust2 弹道闪光
     const aliveCTs = radarEntities.cts.filter(c => c.isAlive);
     const aliveTs = radarEntities.ts.filter(t => t.isAlive);
 
-    for (let k = 0; k < 7; k++) {
+    for (let k = 0; k < 8; k++) {
       if (aliveCTs.length && aliveTs.length) {
         const ct = aliveCTs[Math.floor(Math.random() * aliveCTs.length)];
         const t = aliveTs[Math.floor(Math.random() * aliveTs.length)];
@@ -988,7 +994,7 @@ function triggerRadarBattle(myWon) {
       const loserTeam = gameState.currentMatch?.mySide === 'CT' ? radarEntities.ts : radarEntities.cts;
       const winnerTeam = gameState.currentMatch?.mySide === 'CT' ? radarEntities.cts : radarEntities.ts;
       loserTeam.filter(p => p.isAlive).slice(0, 4).forEach(p => { p.isAlive = false; p.hp = 0; });
-      winnerTeam.filter(p => p.isAlive).slice(0, 1).forEach(p => { p.hp = 25; });
+      winnerTeam.filter(p => p.isAlive).slice(0, 1).forEach(p => { p.hp = 30; });
     } else {
       const loserTeam = gameState.currentMatch?.mySide === 'CT' ? radarEntities.cts : radarEntities.ts;
       loserTeam.filter(p => p.isAlive).slice(0, 4).forEach(p => { p.isAlive = false; p.hp = 0; });
@@ -1006,24 +1012,24 @@ function triggerRadarBattle(myWon) {
   }, 450);
 }
 
-// 60FPS Radar 渲染
+// 60FPS High-Detail Radar 渲染 Loop
 function radarLoop() {
   if (radarCtx && radarCanvas) {
-    drawDust2Radar();
+    drawDust2RadarHighDetail();
   }
   requestAnimationFrame(radarLoop);
 }
 
-function drawDust2Radar() {
+function drawDust2RadarHighDetail() {
   const width = radarCanvas.width;
   const height = radarCanvas.height;
 
-  // 1. Dust2 黄褐色沙尘暗色底色
-  radarCtx.fillStyle = '#0f131d';
+  // 1. 沙色沙尘主题背景底色
+  radarCtx.fillStyle = '#0e1420';
   radarCtx.fillRect(0, 0, width, height);
 
-  // 战术网格
-  radarCtx.strokeStyle = 'rgba(40, 53, 76, 0.4)';
+  // 战术坐标网格
+  radarCtx.strokeStyle = 'rgba(45, 59, 85, 0.35)';
   radarCtx.lineWidth = 1;
   for (let x = 0; x < width; x += 40) {
     radarCtx.beginPath(); radarCtx.moveTo(x, 0); radarCtx.lineTo(x, height); radarCtx.stroke();
@@ -1032,51 +1038,75 @@ function drawDust2Radar() {
     radarCtx.beginPath(); radarCtx.moveTo(0, y); radarCtx.lineTo(width, y); radarCtx.stroke();
   }
 
-  // 2. 绘制 100% 真实 Dust II 战术地图全貌
-  drawDust2MapLayout(width, height);
+  // 2. 绘制 Dust II 精准 2D 建筑墙体与地图实景全貌
+  drawDust2DetailedMapGeometry(width, height);
 
-  // 3. 烟雾弹效果
+  // 3. 烟雾弹云雾
   radarEntities.smokes.forEach(s => {
     radarCtx.beginPath();
     radarCtx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
     radarCtx.fillStyle = `rgba(148, 163, 184, ${s.opacity})`;
     radarCtx.fill();
-    s.radius = Math.min(45, s.radius + 0.1);
+    s.radius = Math.min(45, s.radius + 0.15);
   });
 
-  // 4. C4 炸弹脉冲
+  // 4. 枪口火焰 (Muzzle Flashes)
+  radarEntities.flashes.forEach(f => {
+    radarCtx.beginPath();
+    radarCtx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
+    radarCtx.fillStyle = `rgba(251, 191, 36, ${f.opacity})`;
+    radarCtx.fill();
+    f.opacity -= 0.08;
+  });
+  radarEntities.flashes = radarEntities.flashes.filter(f => f.opacity > 0);
+
+  // 5. C4 爆破警告圈
   if (radarEntities.c4.active) {
     const pulse = (Date.now() % 1000) / 1000;
     radarCtx.beginPath();
-    radarCtx.arc(radarEntities.c4.x, radarEntities.c4.y, 10 + pulse * 22, 0, Math.PI * 2);
+    radarCtx.arc(radarEntities.c4.x, radarEntities.c4.y, 12 + pulse * 24, 0, Math.PI * 2);
     radarCtx.strokeStyle = `rgba(244, 63, 94, ${1 - pulse})`;
     radarCtx.lineWidth = 3;
     radarCtx.stroke();
 
     radarCtx.beginPath();
-    radarCtx.arc(radarEntities.c4.x, radarEntities.c4.y, 6, 0, Math.PI * 2);
+    radarCtx.arc(radarEntities.c4.x, radarEntities.c4.y, 7, 0, Math.PI * 2);
     radarCtx.fillStyle = '#f43f5e';
     radarCtx.fill();
+
+    // 💣 C4 Label
+    radarCtx.fillStyle = '#ffffff';
+    radarCtx.font = 'bold 9px monospace';
+    radarCtx.textAlign = 'center';
+    radarCtx.fillText('💣 C4', radarEntities.c4.x, radarEntities.c4.y - 12);
   }
 
-  // 5. 弹道 Tracers
+  // 6. 弹道射线 (Tracers)
   radarEntities.tracers.forEach(t => {
     radarCtx.beginPath();
     radarCtx.moveTo(t.x1, t.y1);
     radarCtx.lineTo(t.x2, t.y2);
     radarCtx.strokeStyle = `rgba(245, 158, 11, ${t.opacity})`;
-    radarCtx.lineWidth = 2;
+    radarCtx.lineWidth = 2.5;
     radarCtx.stroke();
     t.opacity -= 0.05;
   });
   radarEntities.tracers = radarEntities.tracers.filter(t => t.opacity > 0);
 
-  // 6. 绘制 CT (蓝色) & T (橙色) 选手圆点
+  // 7. 绘制 CT (蓝色) & T (橙色) 选手圆点 + 视角扇形 FOV + 血量环
   const allPlayers = [...radarEntities.cts, ...radarEntities.ts];
 
   allPlayers.forEach(p => {
-    p.x += (p.targetX - p.x) * 0.08;
-    p.y += (p.targetY - p.y) * 0.08;
+    // 平滑走位
+    const dx = p.targetX - p.x;
+    const dy = p.targetY - p.y;
+    p.x += dx * 0.08;
+    p.y += dy * 0.08;
+
+    // 计算面向角度
+    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+      p.angle = Math.atan2(dy, dx);
+    }
 
     if (!p.isAlive) {
       radarCtx.fillStyle = 'rgba(148, 163, 184, 0.5)';
@@ -1085,7 +1115,17 @@ function drawDust2Radar() {
       return;
     }
 
-    // 选手圆点光圈
+    // 视角 FOV 扇形 (Field of View Cone)
+    radarCtx.save();
+    radarCtx.beginPath();
+    radarCtx.moveTo(p.x, p.y);
+    radarCtx.arc(p.x, p.y, 25, p.angle - 0.35, p.angle + 0.35);
+    radarCtx.closePath();
+    radarCtx.fillStyle = p.team === 'CT' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(249, 115, 22, 0.15)';
+    radarCtx.fill();
+    radarCtx.restore();
+
+    // 选手圆点光效
     radarCtx.beginPath();
     radarCtx.arc(p.x, p.y, 8, 0, Math.PI * 2);
     radarCtx.fillStyle = p.team === 'CT' ? '#38bdf8' : '#f97316';
@@ -1098,21 +1138,60 @@ function drawDust2Radar() {
     radarCtx.strokeStyle = '#ffffff';
     radarCtx.stroke();
 
+    // 血量环 (Health Ring Gauge)
+    if (p.hp < 100) {
+      radarCtx.beginPath();
+      radarCtx.arc(p.x, p.y, 11, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * (p.hp / 100)));
+      radarCtx.strokeStyle = p.hp > 50 ? '#10b981' : '#f43f5e';
+      radarCtx.lineWidth = 2;
+      radarCtx.stroke();
+    }
+
+    // 名字 Label
     radarCtx.fillStyle = p.team === 'CT' ? '#7dd3fc' : '#ffedd5';
     radarCtx.font = 'bold 10px monospace';
     radarCtx.textAlign = 'center';
-    radarCtx.fillText(p.name, p.x, p.y - 12);
+    radarCtx.fillText(p.name, p.x, p.y - 14);
   });
 }
 
-// 绘制经典 Dust2 核心地图布局 Line Paths & Sites
-function drawDust2MapLayout(width, height) {
-  radarCtx.lineWidth = 4;
-  radarCtx.strokeStyle = '#3b4252';
+// 绘制高度逼真精细的 CS:GO Dust II 2D 地图全貌
+function drawDust2DetailedMapGeometry(width, height) {
+  // 1. 沙石主通道 Ground Shading
+  radarCtx.fillStyle = '#172030';
+  
+  // A 大通道 Long A Pathway
+  radarCtx.fillRect(250, 360, 420, 40);
+  radarCtx.fillRect(650, 130, 40, 240);
 
-  // 绘制 Dust2 走廊与连线
+  // Short A / Catwalk Pathway
+  radarCtx.fillRect(350, 220, 190, 30);
+  radarCtx.fillRect(520, 150, 40, 100);
+
+  // Mid Corridor & Suicide
+  radarCtx.fillRect(220, 275, 140, 30);
+  radarCtx.fillRect(335, 100, 35, 190);
+
+  // CT Ramp & Spawn
+  radarCtx.fillRect(440, 75, 100, 40);
+
+  // 2. 绘制 B 洞 Upper & Lower Tunnels 专属暗色与斜纹顶棚 (Roof Hatching)
+  radarCtx.fillStyle = '#111827';
+  radarCtx.fillRect(110, 160, 160, 40); // Upper tunnel
+  radarCtx.fillRect(240, 180, 40, 60);  // Lower tunnel
+
+  // Tunnel 斜线纹理
+  radarCtx.strokeStyle = 'rgba(75, 85, 99, 0.4)';
+  radarCtx.lineWidth = 1;
+  for (let tx = 110; tx < 270; tx += 10) {
+    radarCtx.beginPath(); radarCtx.moveTo(tx, 160); radarCtx.lineTo(tx + 8, 200); radarCtx.stroke();
+  }
+
+  // 3. 通道墙体边界 Main Walls
+  radarCtx.lineWidth = 3.5;
+  radarCtx.strokeStyle = '#334155';
+
   radarCtx.beginPath();
-
   // T Spawn -> Outside Long -> Long Doors -> A Long -> A Site
   radarCtx.moveTo(DUST2_ZONES.tSpawn.x, DUST2_ZONES.tSpawn.y);
   radarCtx.lineTo(DUST2_ZONES.outsideLong.x, DUST2_ZONES.outsideLong.y);
@@ -1124,29 +1203,24 @@ function drawDust2MapLayout(width, height) {
   radarCtx.moveTo(DUST2_ZONES.longDoors.x, DUST2_ZONES.longDoors.y);
   radarCtx.lineTo(DUST2_ZONES.pit.x, DUST2_ZONES.pit.y);
 
-  // T Spawn -> Suicide -> Mid Doors -> CT Spawn
-  radarCtx.moveTo(DUST2_ZONES.tSpawn.x, DUST2_ZONES.tSpawn.y);
-  radarCtx.lineTo(DUST2_ZONES.suicide.x, DUST2_ZONES.suicide.y);
+  // Mid & Catwalk
+  radarCtx.moveTo(DUST2_ZONES.suicide.x, DUST2_ZONES.suicide.y);
   radarCtx.lineTo(DUST2_ZONES.mid.x, DUST2_ZONES.mid.y);
-  radarCtx.lineTo(DUST2_ZONES.ctSpawn.x, DUST2_ZONES.ctSpawn.y);
-
-  // Mid -> Catwalk -> Short A -> A Site
-  radarCtx.moveTo(DUST2_ZONES.mid.x, DUST2_ZONES.mid.y);
   radarCtx.lineTo(DUST2_ZONES.catwalk.x, DUST2_ZONES.catwalk.y);
   radarCtx.lineTo(DUST2_ZONES.shortA.x, DUST2_ZONES.shortA.y);
   radarCtx.lineTo(DUST2_ZONES.aSite.x, DUST2_ZONES.aSite.y);
 
-  // T Spawn -> B Upper Tunnel -> B Site
+  // B Tunnels -> B Site
   radarCtx.moveTo(DUST2_ZONES.tSpawn.x, DUST2_ZONES.tSpawn.y);
   radarCtx.lineTo(DUST2_ZONES.upperTunnel.x, DUST2_ZONES.upperTunnel.y);
   radarCtx.lineTo(DUST2_ZONES.bSite.x, DUST2_ZONES.bSite.y);
 
-  // B Lower Tunnel -> Mid
+  // Lower tunnel -> Mid
   radarCtx.moveTo(DUST2_ZONES.upperTunnel.x, DUST2_ZONES.upperTunnel.y);
   radarCtx.lineTo(DUST2_ZONES.lowerTunnel.x, DUST2_ZONES.lowerTunnel.y);
   radarCtx.lineTo(DUST2_ZONES.mid.x, DUST2_ZONES.mid.y);
 
-  // CT Spawn -> A Site & CT Spawn -> B Doors -> B Site
+  // CT Spawn connections
   radarCtx.moveTo(DUST2_ZONES.ctSpawn.x, DUST2_ZONES.ctSpawn.y);
   radarCtx.lineTo(DUST2_ZONES.aSite.x, DUST2_ZONES.aSite.y);
   radarCtx.moveTo(DUST2_ZONES.ctSpawn.x, DUST2_ZONES.ctSpawn.y);
@@ -1155,17 +1229,76 @@ function drawDust2MapLayout(width, height) {
 
   radarCtx.stroke();
 
-  // 绘制 Dust2 核心包点区域
+  // 4. 绘制 Dust2 经典掩体障碍物 (Obstacles & Boxes)
+  // Xbox Box at Mid
+  drawBoxObstacle(DUST2_ZONES.xbox.x, DUST2_ZONES.xbox.y, 16, 16, 'XBOX', '#d97706');
+
+  // Goose Box at A
+  drawBoxObstacle(DUST2_ZONES.goose.x, DUST2_ZONES.goose.y, 22, 18, 'GOOSE', '#64748b');
+
+  // A Site Platform Box
+  drawBoxObstacle(DUST2_ZONES.aSite.x + 15, DUST2_ZONES.aSite.y - 10, 24, 24, 'BOXES', '#f59e0b');
+
+  // B Site Platform Box
+  drawBoxObstacle(DUST2_ZONES.bSite.x - 10, DUST2_ZONES.bSite.y + 10, 26, 26, 'PLATFORM', '#f59e0b');
+
+  // 门标记 (Doors)
+  drawDoorMarker(DUST2_ZONES.mid.x, DUST2_ZONES.mid.y - 20, 'MID DOORS');
+  drawDoorMarker(DUST2_ZONES.longDoors.x, DUST2_ZONES.longDoors.y, 'LONG DOORS');
+  drawDoorMarker(DUST2_ZONES.bDoors.x, DUST2_ZONES.bDoors.y, 'B DOORS');
+
+  // 5. 绘制 A / B 包点 Zone
   drawDust2ZoneBox(DUST2_ZONES.aSite.x, DUST2_ZONES.aSite.y, 90, 60, 'A SITE', '#f59e0b');
   drawDust2ZoneBox(DUST2_ZONES.bSite.x, DUST2_ZONES.bSite.y, 90, 60, 'B SITE', '#f59e0b');
   drawDust2ZoneBox(DUST2_ZONES.ctSpawn.x, DUST2_ZONES.ctSpawn.y, 80, 50, 'CT SPAWN', '#38bdf8');
   drawDust2ZoneBox(DUST2_ZONES.tSpawn.x, DUST2_ZONES.tSpawn.y, 80, 50, 'T SPAWN', '#f97316');
 
-  // 地图名标题
+  // 坑下 Pit Outline
+  radarCtx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+  radarCtx.strokeRect(DUST2_ZONES.pit.x - 20, DUST2_ZONES.pit.y - 15, 40, 30);
+  radarCtx.fillStyle = 'rgba(239, 68, 68, 0.6)';
+  radarCtx.font = 'bold 9px monospace';
+  radarCtx.textAlign = 'center';
+  radarCtx.fillText('PIT', DUST2_ZONES.pit.x, DUST2_ZONES.pit.y + 3);
+
+  // 罗盘 & 标题
+  drawCompassRose(width - 50, 45);
+
   radarCtx.fillStyle = '#f59e0b';
-  radarCtx.font = 'bold 13px monospace';
+  radarCtx.font = 'bold 12px monospace';
   radarCtx.textAlign = 'left';
-  radarCtx.fillText('MAP: DE_DUST2 // CS:GO CLASSIC TACTICAL RADAR', 15, 25);
+  radarCtx.fillText('MAP: DE_DUST2 // CS:GO PRO HIGH-DETAIL RADAR', 15, 25);
+}
+
+function drawBoxObstacle(x, y, w, h, label, color) {
+  radarCtx.fillStyle = `${color}40`;
+  radarCtx.strokeStyle = color;
+  radarCtx.lineWidth = 1.5;
+  radarCtx.fillRect(x - w / 2, y - h / 2, w, h);
+  radarCtx.strokeRect(x - w / 2, y - h / 2, w, h);
+}
+
+function drawDoorMarker(x, y, label) {
+  radarCtx.fillStyle = '#e2e8f0';
+  radarCtx.font = 'bold 9px monospace';
+  radarCtx.textAlign = 'center';
+  radarCtx.fillText(`🚪 ${label}`, x, y);
+}
+
+function drawCompassRose(cx, cy) {
+  radarCtx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+  radarCtx.lineWidth = 1.5;
+  radarCtx.beginPath();
+  radarCtx.arc(cx, cy, 18, 0, Math.PI * 2);
+  radarCtx.stroke();
+
+  radarCtx.fillStyle = '#f59e0b';
+  radarCtx.font = 'bold 9px monospace';
+  radarCtx.textAlign = 'center';
+  radarCtx.fillText('N', cx, cy - 22);
+  radarCtx.fillText('E', cx + 24, cy + 3);
+  radarCtx.fillText('S', cx, cy + 28);
+  radarCtx.fillText('W', cx - 24, cy + 3);
 }
 
 function drawDust2ZoneBox(cx, cy, w, h, label, color) {
