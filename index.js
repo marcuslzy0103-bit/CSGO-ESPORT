@@ -1,16 +1,16 @@
 /**
  * COUNTER-MANAGER 2026 PRO // CS:GO & CS2 ESPORTS SIMULATION ENGINE
- * Full Engine: AI Opponents, Season Calendar, Training Perks, Chemistry, BO3 Major, HLTV Stats, MVP Hall of Fame
+ * Fixed Map: DE_DUST2 2D Tactical Radar Visualizer
  */
 
-const STORAGE_KEY = 'cs_manager_save_v5';
-const MAP_POOL = ['de_inferno', 'de_mirage', 'de_nuke', 'de_anubis', 'de_ancient', 'de_dust2', 'de_vertigo'];
+const STORAGE_KEY = 'cs_manager_save_v6';
+const MAP_POOL = ['de_dust2']; // 固定经典 Dust II 地图
 
 /* ==========================================================================
    TEAM AI PROFILES — 每支战队的独特战术风格与明星选手
    ========================================================================== */
 const TEAM_PROFILES = {
-  'Natus Vincere': { style: 'awp_heavy', avgAim: 93, avgSense: 91, avgClutch: 94, star: 's1mple', region: '🇺🇦 Ukraine', points: 985 },
+  'Natus Vincere': { style: 'awp_heavy', avgAim: 93, avgSense: 91, avgClutch: 94, star: 's1mple', region: '🇺化 Ukraine', points: 985 },
   'Team Vitality':  { style: 'balanced',  avgAim: 92, avgSense: 95, avgClutch: 93, star: 'ZywOo',  region: '🇫🇷 France', points: 940 },
   'FaZe Clan':      { style: 'firepower', avgAim: 95, avgSense: 88, avgClutch: 90, star: 'rain',   region: '🇪🇺 Europe', points: 890 },
   'G2 Esports':     { style: 'tactical',  avgAim: 90, avgSense: 94, avgClutch: 88, star: 'NiKo',   region: '🇪🇺 Europe', points: 850 },
@@ -26,45 +26,44 @@ const TEAM_PROFILES = {
 const TEAM_NAMES = Object.keys(TEAM_PROFILES);
 
 /* ==========================================================================
-   PERK DEFINITIONS — 选手特长 Perk 技能树
+   PERK DEFINITIONS — 选手角色固有特长 (Innate Traits)
    ========================================================================== */
 const PERK_DEFS = {
-  'AWP Specialist':  { stat: 'aim',      boost: 5, cost: 5, req: { aim: 85 },      icon: '🔭', desc: 'AWP 命中率 +5' },
-  'Clutch God':      { stat: 'clutch',   boost: 6, cost: 5, req: { clutch: 85 },   icon: '🧊', desc: '1vN 残局心态 +6' },
-  'IGL Mastermind':  { stat: 'sense',    boost: 5, cost: 4, req: { sense: 88 },     icon: '🧠', desc: '全队战术读图 +5' },
-  'Entry Machine':   { stat: 'aim',      boost: 4, cost: 4, req: { aim: 82 },       icon: '💥', desc: '首杀火力突破 +4' },
-  'Smoke Criminal':  { stat: 'sense',    boost: 4, cost: 3, req: { sense: 80 },     icon: '💨', desc: '投掷物利用率 +4' },
-  'Speed Demon':     { stat: 'movement', boost: 5, cost: 3, req: { movement: 82 },  icon: '⚡', desc: '极限身法走位 +5' },
+  'AWP Specialist':  { stat: 'aim',      boost: 5, icon: '🔭', desc: 'AWP 狙击精通' },
+  'Clutch God':      { stat: 'clutch',   boost: 6, icon: '🧊', desc: '1vN 残局心态' },
+  'IGL Mastermind':  { stat: 'sense',    boost: 5, icon: '🧠', desc: '指挥读图' },
+  'Entry Machine':   { stat: 'aim',      boost: 4, icon: '💥', desc: '突破首杀' },
+  'Smoke Criminal':  { stat: 'sense',    boost: 4, icon: '💨', desc: '道具搜查' },
+  'Speed Demon':     { stat: 'movement', boost: 5, icon: '⚡', desc: '身法走位' },
 };
 
 /* ==========================================================================
-   DEFAULT GAME STATE — 完整默认游戏状态
+   DEFAULT GAME STATE — 默认游戏状态
    ========================================================================== */
 const defaultGameState = {
   club: { name: 'CYBER WOLVES CS', region: '🇲🇾 Malaysia', coach: 'Marcus', budget: 100000, rank: 18, wins: 0, losses: 0 },
-  trainingPoints: 15,
   tacticStyle: 'balanced',
   matchesPlayed: 0,
   roster: [
-    { id: 'p1', name: 'Marcus',  role: 'AWPer',  aim: 88, sense: 85, clutch: 90, movement: 84, morale: 95, salary: 4500, value: 35000, perks: [], chemistry: 100, joinedAt: 0 },
-    { id: 'p2', name: 'Vortex',  role: 'IGL',    aim: 80, sense: 92, clutch: 82, movement: 78, morale: 90, salary: 3800, value: 28000, perks: [], chemistry: 100, joinedAt: 0 },
-    { id: 'p3', name: 'Blaze',   role: 'Entry',  aim: 89, sense: 79, clutch: 80, movement: 88, morale: 88, salary: 3600, value: 26000, perks: [], chemistry: 100, joinedAt: 0 },
-    { id: 'p4', name: 'Shadow',  role: 'Support',aim: 82, sense: 86, clutch: 84, movement: 80, morale: 92, salary: 3200, value: 22000, perks: [], chemistry: 100, joinedAt: 0 },
-    { id: 'p5', name: 'Echo',    role: 'Lurker', aim: 85, sense: 88, clutch: 89, movement: 85, morale: 90, salary: 3400, value: 24000, perks: [], chemistry: 100, joinedAt: 0 }
+    { id: 'p1', name: 'Marcus',  role: 'AWPer',  aim: 88, sense: 85, clutch: 90, movement: 84, morale: 95, salary: 4500, value: 35000, perks: ['AWP Specialist'], chemistry: 100 },
+    { id: 'p2', name: 'Vortex',  role: 'IGL',    aim: 80, sense: 92, clutch: 82, movement: 78, morale: 90, salary: 3800, value: 28000, perks: ['IGL Mastermind'], chemistry: 100 },
+    { id: 'p3', name: 'Blaze',   role: 'Entry',  aim: 89, sense: 79, clutch: 80, movement: 88, morale: 88, salary: 3600, value: 26000, perks: ['Entry Machine'], chemistry: 100 },
+    { id: 'p4', name: 'Shadow',  role: 'Support',aim: 82, sense: 86, clutch: 84, movement: 80, morale: 92, salary: 3200, value: 22000, perks: ['Smoke Criminal'], chemistry: 100 },
+    { id: 'p5', name: 'Echo',    role: 'Lurker', aim: 85, sense: 88, clutch: 89, movement: 85, morale: 90, salary: 3400, value: 24000, perks: ['Clutch God'], chemistry: 100 }
   ],
   bench: [],
   market: [
-    { id: 'm1', name: 's1mple_fan',   role: 'AWPer', aim: 96, sense: 94, clutch: 95, movement: 92, morale: 95, salary: 8500, value: 75000, perks: [], chemistry: 50, joinedAt: -1 },
-    { id: 'm2', name: 'ZywOo_JR',     role: 'AWPer', aim: 95, sense: 96, clutch: 94, movement: 90, morale: 96, salary: 8200, value: 72000, perks: [], chemistry: 50, joinedAt: -1 },
-    { id: 'm3', name: 'NiKo_Rifle',   role: 'Entry', aim: 97, sense: 90, clutch: 88, movement: 91, morale: 90, salary: 7800, value: 68000, perks: [], chemistry: 50, joinedAt: -1 },
-    { id: 'm4', name: 'ropz_Lurk',    role: 'Lurker',aim: 92, sense: 97, clutch: 96, movement: 89, morale: 94, salary: 7500, value: 65000, perks: [], chemistry: 50, joinedAt: -1 },
-    { id: 'm5', name: 'm0NESY_Flick', role: 'AWPer', aim: 95, sense: 92, clutch: 93, movement: 95, morale: 92, salary: 7900, value: 70000, perks: [], chemistry: 50, joinedAt: -1 },
-    { id: 'm6', name: 'b1t_OneTap',   role: 'Entry', aim: 94, sense: 88, clutch: 86, movement: 87, morale: 90, salary: 5500, value: 45000, perks: [], chemistry: 50, joinedAt: -1 }
+    { id: 'm1', name: 's1mple_fan',   role: 'AWPer', aim: 96, sense: 94, clutch: 95, movement: 92, morale: 95, salary: 8500, value: 75000, perks: ['AWP Specialist'], chemistry: 50 },
+    { id: 'm2', name: 'ZywOo_JR',     role: 'AWPer', aim: 95, sense: 96, clutch: 94, movement: 90, morale: 96, salary: 8200, value: 72000, perks: ['AWP Specialist', 'Clutch God'], chemistry: 50 },
+    { id: 'm3', name: 'NiKo_Rifle',   role: 'Entry', aim: 97, sense: 90, clutch: 88, movement: 91, morale: 90, salary: 7800, value: 68000, perks: ['Entry Machine'], chemistry: 50 },
+    { id: 'm4', name: 'ropz_Lurk',    role: 'Lurker',aim: 92, sense: 97, clutch: 96, movement: 89, morale: 94, salary: 7500, value: 65000, perks: ['Smoke Criminal'], chemistry: 50 },
+    { id: 'm5', name: 'm0NESY_Flick', role: 'AWPer', aim: 95, sense: 92, clutch: 93, movement: 95, morale: 92, salary: 7900, value: 70000, perks: ['Speed Demon'], chemistry: 50 },
+    { id: 'm6', name: 'b1t_OneTap',   role: 'Entry', aim: 94, sense: 88, clutch: 86, movement: 87, morale: 90, salary: 5500, value: 45000, perks: ['Entry Machine'], chemistry: 50 }
   ],
   academy: [
-    { id: 'a1', name: 'Rookie_Ace',  role: 'Entry',  aim: 72, sense: 68, clutch: 70, movement: 75, morale: 98, salary: 1200, value: 8000, perks: [], chemistry: 50, joinedAt: -1 },
-    { id: 'a2', name: 'Junior_AWP',  role: 'AWPer',  aim: 74, sense: 65, clutch: 68, movement: 70, morale: 95, salary: 1000, value: 6000, perks: [], chemistry: 50, joinedAt: -1 },
-    { id: 'a3', name: 'NewBlood_IGL',role: 'IGL',    aim: 68, sense: 76, clutch: 72, movement: 67, morale: 97, salary: 1100, value: 7000, perks: [], chemistry: 50, joinedAt: -1 },
+    { id: 'a1', name: 'Rookie_Ace',  role: 'Entry',  aim: 72, sense: 68, clutch: 70, movement: 75, morale: 98, salary: 1200, value: 8000, perks: ['Entry Machine'], chemistry: 50 },
+    { id: 'a2', name: 'Junior_AWP',  role: 'AWPer',  aim: 74, sense: 65, clutch: 68, movement: 70, morale: 95, salary: 1000, value: 6000, perks: ['AWP Specialist'], chemistry: 50 },
+    { id: 'a3', name: 'NewBlood_IGL',role: 'IGL',    aim: 68, sense: 76, clutch: 72, movement: 67, morale: 97, salary: 1100, value: 7000, perks: ['IGL Mastermind'], chemistry: 50 },
   ],
   season: { phase: 'league', matchIndex: 0, calendar: [] },
   playerStats: {},
@@ -119,12 +118,10 @@ function migrateState() {
   if (!gameState.season) gameState.season = { phase: 'league', matchIndex: 0, calendar: [] };
   if (!gameState.playerStats) { gameState.playerStats = {}; initPlayerStats(); }
   if (!gameState.trophies) gameState.trophies = [];
-  if (gameState.trainingPoints === undefined) gameState.trainingPoints = 15;
   if (gameState.matchesPlayed === undefined) gameState.matchesPlayed = 0;
   gameState.roster.forEach(p => {
     if (!p.perks) p.perks = [];
     if (p.chemistry === undefined) p.chemistry = 100;
-    if (p.joinedAt === undefined) p.joinedAt = 0;
   });
   if (!gameState.hltvRankings || !gameState.hltvRankings.length) buildHltvRankings();
 }
@@ -141,7 +138,6 @@ function buildHltvRankings() {
   gameState.hltvRankings = TEAM_NAMES.map((name, i) => ({
     rank: i + 1, name, region: TEAM_PROFILES[name].region, points: TEAM_PROFILES[name].points, winLoss: '0-0'
   }));
-  // Insert user club
   gameState.hltvRankings.push({
     rank: gameState.club.rank, name: gameState.club.name, region: gameState.club.region,
     points: 340, winLoss: `${gameState.club.wins}-${gameState.club.losses}`
@@ -203,11 +199,11 @@ function initEvents() {
     gameState.club.region = document.getElementById('input-club-region').value;
     gameState.club.coach = document.getElementById('input-coach-name').value.trim() || 'Marcus';
     gameState.club.budget = 100000; gameState.club.wins = 0; gameState.club.losses = 0; gameState.club.rank = 18;
-    gameState.trainingPoints = 15; gameState.matchesPlayed = 0; gameState.bench = []; gameState.trophies = [];
-    gameState.roster.forEach(p => { p.chemistry = 100; p.perks = []; p.joinedAt = 0; });
+    gameState.matchesPlayed = 0; gameState.bench = []; gameState.trophies = [];
+    gameState.roster.forEach(p => { p.chemistry = 100; });
     initPlayerStats(); buildHltvRankings(); generateSeasonCalendar(); advanceToNextMatch();
     saveGame(); renderAll(); modal?.classList.add('hidden');
-    showToast(`战队 [${gameState.club.name}] 正式创立！征战 Major 之路开始！`);
+    showToast(`战队 [${gameState.club.name}] 正式创立！征战 Dust2 Major 赛场！`);
   });
 
   // Tactic select
@@ -216,20 +212,13 @@ function initEvents() {
     showToast(`战术调整为: ${e.target.options[e.target.selectedIndex].text}`);
   });
 
-  // Buy TP
-  document.getElementById('btn-buy-tp')?.addEventListener('click', () => {
-    if (gameState.club.budget < 10000) { showToast('资金不足！需要 $10,000 购买训练营课时。'); return; }
-    gameState.club.budget -= 10000; gameState.trainingPoints += 5;
-    saveGame(); renderAll(); showToast('成功购买 5 TP 训练点数！可用于强化选手属性。');
-  });
-
   // Match buttons
   document.getElementById('dash-btn-play')?.addEventListener('click', () => switchTab('match'));
   document.getElementById('btn-sim-round')?.addEventListener('click', simulateRound);
   document.getElementById('btn-sim-auto')?.addEventListener('click', autoPlayMatch);
   document.getElementById('btn-reset-match')?.addEventListener('click', () => {
     stopAutoPlay(); advanceToNextMatch(); renderAll();
-    showToast(`下一场比赛已准备就绪！`);
+    showToast(`Dust2 经典对决已准备就绪！`);
   });
 }
 
@@ -237,10 +226,10 @@ function initEvents() {
    4. SEASON CALENDAR — 赛季日历系统
    ========================================================================== */
 const PHASE_CONFIG = {
-  league:          { label: '🟢 联赛 (League)',          count: 6, format: 'BO1' },
-  qualifiers:      { label: '🟡 资格赛 (Qualifiers)',    count: 3, format: 'BO1' },
+  league:          { label: '🟢 Dust2 联赛 (League)',     count: 6, format: 'BO1' },
+  qualifiers:      { label: '🟡 Major 资格赛 (Qualifiers)', count: 3, format: 'BO1' },
   major_groups:    { label: '🔵 Major 小组赛 (Groups)',   count: 3, format: 'BO1' },
-  major_playoffs:  { label: '🏆 Major 淘汰赛 (Playoffs)',count: 3, format: 'BO3' },
+  major_playoffs:  { label: '🏆 Major 8强淘汰赛 (Playoffs)',count: 3, format: 'BO3' },
 };
 const PHASE_ORDER = ['league', 'qualifiers', 'major_groups', 'major_playoffs'];
 
@@ -276,31 +265,18 @@ function endSeason() {
 }
 
 /* ==========================================================================
-   5. MATCH ENGINE — CS 比赛模拟引擎 (支持 BO1 & BO3)
+   5. MATCH ENGINE — CS 比赛模拟引擎 (固定 DE_DUST2 地图)
    ========================================================================== */
 function initNewMatch(oppName, format) {
   stopAutoPlay();
   format = format || 'BO1';
 
-  // Map Veto
-  const shuffledMaps = [...MAP_POOL].sort(() => Math.random() - 0.5);
-  const banned = shuffledMaps.slice(0, 2).map(m => m.toUpperCase());
-  const remaining = shuffledMaps.slice(2);
-
-  let maps;
-  if (format === 'BO3') {
-    maps = remaining.slice(0, 3);
-  } else {
-    maps = [remaining[0]];
-  }
-
   gameState.currentMatch = {
     opponent: oppName, format,
-    maps: maps.map(m => m.toUpperCase()),
-    bannedMaps: banned,
+    maps: ['DE_DUST2'],
+    bannedMaps: ['DE_INFERNO', 'DE_NUKES', 'DE_MIRAGE'],
     currentMapIndex: 0,
     seriesScoreMy: 0, seriesScoreOpp: 0,
-    // Current map state
     roundNum: 1, scoreMy: 0, scoreOpp: 0,
     mySide: 'CT', oppSide: 'T',
     myMoney: 800, oppMoney: 800,
@@ -312,12 +288,10 @@ function initNewMatch(oppName, format) {
 
 function getEffectiveStat(player, stat) {
   let val = player[stat] || 0;
-  // Perk boosts
   (player.perks || []).forEach(perkName => {
     const def = PERK_DEFS[perkName];
     if (def && def.stat === stat) val += def.boost;
   });
-  // Chemistry modifier
   const chem = player.chemistry !== undefined ? player.chemistry : 100;
   if (chem < 70) val = Math.round(val * 0.9);
   else if (chem >= 90) val += 3;
@@ -344,11 +318,10 @@ function simulateRound() {
   } else if (m.roundNum === 1) {
     m.myBuyType = 'PISTOL ($800)'; m.oppBuyType = 'PISTOL ($800)';
   } else {
-    m.myBuyType = m.myMoney >= 4200 ? 'FULL BUY (AK/AWP + 护甲)' : (m.myMoney >= 2200 ? 'FORCE BUY (Galil + Armor)' : 'ECO SAVE');
-    m.oppBuyType = m.oppMoney >= 4200 ? 'FULL BUY (AK/AWP + 护甲)' : (m.oppMoney >= 2200 ? 'FORCE BUY (Galil + Armor)' : 'ECO SAVE');
+    m.myBuyType = m.myMoney >= 4200 ? 'FULL BUY (AK/AWP + 护甲)' : (m.myMoney >= 2200 ? 'FORCE BUY (Galil/Famas)' : 'ECO SAVE');
+    m.oppBuyType = m.oppMoney >= 4200 ? 'FULL BUY (AK/AWP + 护甲)' : (m.oppMoney >= 2200 ? 'FORCE BUY (Galil/Famas)' : 'ECO SAVE');
   }
 
-  // Calculate power with effective stats, chemistry, perks
   const avgAim = gameState.roster.reduce((s, p) => s + getEffectiveStat(p, 'aim'), 0) / 5;
   const avgClutch = gameState.roster.reduce((s, p) => s + getEffectiveStat(p, 'clutch'), 0) / 5;
   const avgChem = gameState.roster.reduce((s, p) => s + (p.chemistry || 100), 0) / 5;
@@ -356,11 +329,9 @@ function simulateRound() {
   let myPower = avgAim * 0.45 + avgClutch * 0.25 + (m.myMoney / 16000) * 20 + (avgChem / 100) * 10;
   let oppPower = opp.avgAim * 0.45 + opp.avgClutch * 0.25 + (m.oppMoney / 16000) * 20 + 9;
 
-  // Tactic modifiers
   const tactics = { aggressive: 5, defensive: 3, balanced: 0, forcebuy: 2 };
   myPower += tactics[gameState.tacticStyle] || 0;
 
-  // Opponent style modifiers
   if (opp.style === 'awp_heavy') oppPower += 3;
   if (opp.style === 'defensive') oppPower += 2;
   if (opp.style === 'aggressive') oppPower += 4;
@@ -368,14 +339,12 @@ function simulateRound() {
   const winProb = Math.max(0.15, Math.min(0.85, myPower / (myPower + oppPower)));
   const myWon = Math.random() < winProb;
 
-  // Pick a random player for kill feed
   const hero = gameState.roster[Math.floor(Math.random() * 5)];
-  const weapons = ['AK-47', 'M4A1-S', 'AWP', 'Desert Eagle', 'USP-S', 'Galil AR', 'MP9'];
+  const weapons = ['AK-47', 'M4A4', 'AWP', 'Desert Eagle', 'USP-S', 'Galil AR', 'MP9'];
   const weapon = weapons[Math.floor(Math.random() * weapons.length)];
   const logs = [];
-  logs.push(`--- 回合 ${m.roundNum} [${m.maps[m.currentMapIndex]}] (${m.mySide} vs ${m.oppSide}) ---`);
+  logs.push(`--- 回合 ${m.roundNum} [de_dust2] (${m.mySide} vs ${m.oppSide}) ---`);
 
-  // Update player stats
   const heroStats = gameState.playerStats[hero.id] || { kills: 0, deaths: 0, rounds: 0, clutchWins: 0, clutchAttempts: 0 };
   heroStats.rounds++;
 
@@ -390,11 +359,11 @@ function simulateRound() {
 
     if (isClutch) {
       heroStats.clutchAttempts++; heroStats.clutchWins++;
-      logs.push(`💥 [CLUTCH 1v${Math.floor(Math.random() * 2) + 2}] ${hero.name} 极限残局，${weapon} 连续击杀完成逆转！`);
+      logs.push(`💥 [Dust2 残局] ${hero.name} B 包点冷静思考，${weapon} 1v2 守包成功！`);
     } else if (Math.random() < 0.3) {
-      logs.push(`💣 [炸弹安放] ${hero.name} 精准封烟，顺利安放 C4 并守住包点！`);
+      logs.push(`💣 [C4 安放] ${hero.name} 精准封 A 门大门烟雾，顺利安放 C4 爆破！`);
     } else {
-      logs.push(`🎯 [首杀] ${hero.name} 使用 ${weapon} 爆头击杀 ${opp.star}！`);
+      logs.push(`🎯 [A 门首杀] ${hero.name} 使用 ${weapon} 爆头架死 ${opp.star}！`);
     }
   } else {
     m.scoreOpp++; m.myLossStreak++; m.oppLossStreak = 0;
@@ -405,11 +374,11 @@ function simulateRound() {
     if (Math.random() < 0.2) { heroStats.clutchAttempts++; }
 
     if (Math.random() < 0.3) {
-      logs.push(`⚠️ ${opp.star} 使用 AWP 长枪架住关键位，我方突破失败。`);
+      logs.push(`⚠️ ${opp.star} 在 Dust2 中门架狙完成首杀，对手控制中路。`);
     } else if (Math.random() < 0.3) {
-      logs.push(`🛡️ [拆弹] 对手成功回防拆除 C4，遗憾丢掉本回合。`);
+      logs.push(`🛡️ [拆弹成功] 对手在 A 小回防封烟拆除 C4，我方惜败。`);
     } else {
-      logs.push(`❌ 对手团队配合火力交叉，我方未能完成回防。`);
+      logs.push(`❌ 对手 B 洞 Rush 火力过于猛烈，我方防线告破。`);
     }
   }
 
@@ -417,7 +386,6 @@ function simulateRound() {
   m.killFeed.unshift(...logs.reverse());
   m.roundNum++;
 
-  // Check map win (MR12: first to 13)
   if (m.scoreMy >= 13 || m.scoreOpp >= 13) {
     finishMap();
   }
@@ -433,7 +401,7 @@ function finishMap() {
   if (mapWon) m.seriesScoreMy++;
   else m.seriesScoreOpp++;
 
-  m.killFeed.unshift(`🗺️ === 地图 ${m.maps[m.currentMapIndex]} 结束！比分 ${mapScore} ${mapWon ? '✅ 我方胜利' : '❌ 对手胜利'} (系列赛 ${m.seriesScoreMy}-${m.seriesScoreOpp}) ===`);
+  m.killFeed.unshift(`🗺️ === DE_DUST2 结束！比分 ${mapScore} ${mapWon ? '✅ 我方胜利' : '❌ 对手胜利'} (系列赛 ${m.seriesScoreMy}-${m.seriesScoreOpp}) ===`);
 
   const winsNeeded = m.format === 'BO3' ? 2 : 1;
 
@@ -442,15 +410,14 @@ function finishMap() {
     stopAutoPlay();
     finishMatch();
   } else {
-    // Next map in BO3
-    m.currentMapIndex++;
+    m.currentMapIndex = 0;
     m.roundNum = 1; m.scoreMy = 0; m.scoreOpp = 0;
     m.mySide = 'CT'; m.oppSide = 'T';
     m.myMoney = 800; m.oppMoney = 800;
     m.myLossStreak = 0; m.oppLossStreak = 0;
     m.myBuyType = 'PISTOL ($800)'; m.oppBuyType = 'PISTOL ($800)';
     m.isMapFinished = false;
-    m.killFeed.unshift(`🗺️ --- 即将开始地图 ${m.maps[m.currentMapIndex]} ---`);
+    m.killFeed.unshift(`🗺️ --- 即将开始下一局 de_dust2 ---`);
   }
 }
 
@@ -458,7 +425,6 @@ function finishMatch() {
   const m = gameState.currentMatch;
   const won = m.format === 'BO3' ? m.seriesScoreMy > m.seriesScoreOpp : m.scoreMy > m.scoreOpp;
 
-  // Update season calendar
   const sm = getCurrentSeasonMatch();
   if (sm) {
     sm.result = won ? 'WIN' : 'LOSS';
@@ -466,42 +432,35 @@ function finishMatch() {
   }
 
   gameState.matchesPlayed++;
-
-  // Chemistry: all starters +5
   gameState.roster.forEach(p => { p.chemistry = Math.min(100, (p.chemistry || 100) + 5); });
 
   if (won) {
     gameState.club.wins++;
     const prize = gameState.season.phase === 'major_playoffs' ? 50000 : 25000;
     gameState.club.budget += prize;
-    gameState.trainingPoints += 3;
     if (gameState.club.rank > 1) gameState.club.rank--;
 
-    // Check Major Champion
     if (gameState.season.phase === 'major_playoffs' && gameState.season.matchIndex >= gameState.season.calendar.length - 1) {
-      // Find MVP (highest kill player)
       let mvpId = null, mvpKills = 0;
       Object.entries(gameState.playerStats).forEach(([id, st]) => {
         if (st.kills > mvpKills) { mvpKills = st.kills; mvpId = id; }
       });
       const mvpPlayer = gameState.roster.find(p => p.id === mvpId);
       gameState.trophies.push({
-        title: `Major Champion Season ${gameState.trophies.length + 1}`,
+        title: `Dust2 Major Champion S${gameState.trophies.length + 1}`,
         date: new Date().toLocaleDateString(), mvpPlayer: mvpPlayer ? mvpPlayer.name : 'N/A'
       });
-      showToast(`🏆🏆🏆 恭喜荣获 MAJOR 冠军！MVP: ${mvpPlayer ? mvpPlayer.name : 'N/A'}！奖金 $${prize.toLocaleString()}！`);
+      showToast(`🏆🏆🏆 恭喜荣获 DUST2 MAJOR 冠军！MVP: ${mvpPlayer ? mvpPlayer.name : 'N/A'}！奖金 $${prize.toLocaleString()}！`);
     } else {
-      showToast(`🏆 胜利！奖金 $${prize.toLocaleString()}，TP +3，排名升至 #${gameState.club.rank}！`);
+      showToast(`🏆 Dust2 胜利！奖金 $${prize.toLocaleString()}，排名升至 #${gameState.club.rank}！`);
     }
   } else {
     gameState.club.losses++;
     gameState.club.budget += 8000;
-    gameState.trainingPoints += 1;
     if (gameState.club.rank < 30) gameState.club.rank++;
-    showToast(`💔 失利，参与奖 $8,000，TP +1。调整战术再战！`);
+    showToast(`💔 失利，参与奖 $8,000。继续调整战术！`);
   }
 
-  // Update HLTV rankings
   const userEntry = gameState.hltvRankings.find(r => r.name === gameState.club.name);
   if (userEntry) {
     userEntry.winLoss = `${gameState.club.wins}-${gameState.club.losses}`;
@@ -530,38 +489,7 @@ function stopAutoPlay() {
 }
 
 /* ==========================================================================
-   6. TRAINING & PERKS — 训练与技能树
-   ========================================================================== */
-window.trainStat = function(playerId, stat) {
-  if (gameState.trainingPoints < 2) { showToast('训练点数不足！需要 2 TP。'); return; }
-  const p = gameState.roster.find(r => r.id === playerId);
-  if (!p) return;
-  if (p[stat] >= 99) { showToast(`${p.name} 的 ${stat} 已达上限 99！`); return; }
-  p[stat] = Math.min(99, p[stat] + 2);
-  gameState.trainingPoints -= 2;
-  saveGame(); renderAll();
-  showToast(`${p.name} 的 ${stat} 提升至 ${p[stat]}！`);
-};
-
-window.unlockPerk = function(playerId, perkName) {
-  const p = gameState.roster.find(r => r.id === playerId);
-  if (!p) return;
-  if (p.perks.includes(perkName)) { showToast('已解锁该 Perk！'); return; }
-  const def = PERK_DEFS[perkName];
-  if (!def) return;
-  if (gameState.trainingPoints < def.cost) { showToast(`TP 不足！需要 ${def.cost} TP。`); return; }
-  // Check requirements
-  for (const [stat, minVal] of Object.entries(def.req)) {
-    if ((p[stat] || 0) < minVal) { showToast(`${p.name} 的 ${stat} 未达到 ${minVal} 门槛！`); return; }
-  }
-  p.perks.push(perkName);
-  gameState.trainingPoints -= def.cost;
-  saveGame(); renderAll();
-  showToast(`${def.icon} ${p.name} 解锁 Perk [${perkName}]！${def.desc}`);
-};
-
-/* ==========================================================================
-   7. TRANSFER & BENCH — 转会与替补席
+   6. TRANSFER & BENCH — 转会与替补席
    ========================================================================== */
 window.buyPlayer = function(playerId) {
   const src = gameState.market.find(m => m.id === playerId) || gameState.academy.find(a => a.id === playerId);
@@ -581,10 +509,8 @@ window.buyPlayer = function(playerId) {
   gameState.bench.push(replaced);
 
   src.chemistry = 50;
-  src.joinedAt = gameState.matchesPlayed;
   gameState.roster[replaceIdx] = src;
 
-  // Init stats for new player
   if (!gameState.playerStats[src.id]) {
     gameState.playerStats[src.id] = { kills: 0, deaths: 0, rounds: 0, clutchWins: 0, clutchAttempts: 0 };
   }
@@ -596,10 +522,10 @@ window.buyPlayer = function(playerId) {
 };
 
 /* ==========================================================================
-   8. RENDER ENGINE — UI 渲染引擎
+   7. RENDER ENGINE — UI 渲染引擎
    ========================================================================== */
 function renderAll() {
-  renderHeader(); renderDashboard(); renderTraining(); renderBench();
+  renderHeader(); renderDashboard(); renderRoster(); renderBench();
   renderTransfers(); renderAcademy(); renderMatchUI(); renderBracket();
   renderStats(); renderTrophyCabinet(); renderRankings();
 }
@@ -611,7 +537,6 @@ function renderHeader() {
   const c = gameState.club;
   setEl('header-club-name', c.name);
   setEl('header-budget', `$${c.budget.toLocaleString()}`);
-  setEl('header-tp', `${gameState.trainingPoints} TP`);
   setEl('header-rank', `#${c.rank} WORLD`);
 }
 
@@ -620,23 +545,20 @@ function renderDashboard() {
   const sm = getCurrentSeasonMatch();
   setEl('dash-next-opp', sm ? sm.opponent : '赛季结束');
   setEl('dash-avg-aim', (gameState.roster.reduce((s, p) => s + getEffectiveStat(p, 'aim'), 0) / 5).toFixed(1));
-  setEl('dash-tp-display', `${gameState.trainingPoints} TP`);
   setEl('dash-avg-morale', Math.round(gameState.roster.reduce((s, p) => s + p.morale, 0) / 5) + '%');
 
   const totalSalary = gameState.roster.reduce((s, p) => s + p.salary, 0) + (gameState.bench || []).reduce((s, p) => s + p.salary, 0);
   setEl('dash-monthly-salary', `$${totalSalary.toLocaleString()}`);
 
-  // Season info in header
   const phaseLabel = sm ? PHASE_CONFIG[sm.phase]?.label || sm.phase : '赛季结束';
   setEl('header-season', `${phaseLabel} | 比赛 ${gameState.season.matchIndex + 1}/${gameState.season.calendar.length}`);
 
-  // Roster snapshot
   const list = el('dash-roster-list');
   if (list) {
     list.innerHTML = gameState.roster.map(p => {
       const perkBadges = (p.perks || []).map(pk => {
-        const d = PERK_DEFS[pk]; return d ? `<span class="px-1 py-0.5 rounded text-[9px] perk-badge-${d.stat === 'aim' ? 'awp' : d.stat === 'clutch' ? 'clutch' : d.stat === 'sense' ? 'igl' : 'entry'}">${d.icon}</span>` : '';
-      }).join('');
+        const d = PERK_DEFS[pk]; return d ? `<span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-400 font-bold">${d.icon} ${pk}</span>` : '';
+      }).join(' ');
       const chemColor = p.chemistry >= 90 ? 'text-emerald-400' : p.chemistry >= 70 ? 'text-amber-400' : 'text-rose-400';
       return `<div class="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between font-mono text-xs">
         <div class="flex items-center gap-2">
@@ -652,37 +574,30 @@ function renderDashboard() {
     }).join('');
   }
 
-  // News
   const news = el('dash-news-list');
   if (news) {
     const latestResults = gameState.season.calendar.filter(m => m.result).slice(-3).reverse();
     let newsHtml = `<div class="p-3 rounded-lg bg-slate-950 border border-slate-800 text-slate-300">
-      🔥 <strong class="text-amber-400">[HLTV]</strong> <strong>${c.name}</strong> ${phaseLabel} | 排名 #${c.rank} | 资金 $${c.budget.toLocaleString()}
+      🔥 <strong class="text-amber-400">[HLTV Dust2]</strong> <strong>${c.name}</strong> ${phaseLabel} | 排名 #${c.rank}
     </div>`;
     latestResults.forEach(r => {
       const isWin = r.result === 'WIN';
       newsHtml += `<div class="p-3 rounded-lg bg-slate-950 border ${isWin ? 'border-emerald-500/30' : 'border-rose-500/30'} text-slate-300">
-        ${isWin ? '✅' : '❌'} vs <strong>${r.opponent}</strong> ${r.score} (${PHASE_CONFIG[r.phase]?.label || r.phase})
+        ${isWin ? '✅' : '❌'} vs <strong>${r.opponent}</strong> ${r.score} (de_dust2)
       </div>`;
     });
     news.innerHTML = newsHtml;
   }
 }
 
-function renderTraining() {
-  setEl('roster-tp-val', `${gameState.trainingPoints} TP`);
+// 渲染阵容（纯展示，取消手动加点按键）
+function renderRoster() {
   const cards = el('roster-training-cards');
   if (!cards) return;
 
   cards.innerHTML = gameState.roster.map(p => {
     const perkBadges = (p.perks || []).map(pk => {
-      const d = PERK_DEFS[pk]; return d ? `<div class="px-2 py-0.5 rounded-full text-[9px] font-bold perk-badge-${d.stat === 'aim' ? 'awp' : d.stat === 'clutch' ? 'clutch' : d.stat === 'sense' ? 'igl' : 'entry'}">${d.icon} ${pk}</div>` : '';
-    }).join('');
-
-    // Available perks to unlock
-    const availablePerks = Object.entries(PERK_DEFS).filter(([name]) => !p.perks.includes(name)).map(([name, def]) => {
-      const meetsReq = Object.entries(def.req).every(([stat, min]) => (p[stat] || 0) >= min);
-      return `<button onclick="unlockPerk('${p.id}','${name}')" class="px-2 py-1 rounded text-[9px] font-bold ${meetsReq ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}" ${meetsReq ? '' : 'disabled'} title="${def.desc} (需 ${def.cost} TP)">${def.icon} ${name} (${def.cost}TP)</button>`;
+      const d = PERK_DEFS[pk]; return d ? `<div class="px-2 py-1 rounded bg-amber-500/20 border border-amber-500/40 text-amber-400 text-[10px] font-bold flex items-center gap-1">${d.icon} ${pk}</div>` : '';
     }).join('');
 
     const chemColor = p.chemistry >= 90 ? 'text-emerald-400' : p.chemistry >= 70 ? 'text-amber-400' : 'text-rose-400';
@@ -690,20 +605,20 @@ function renderTraining() {
     return `<div class="rounded-xl bg-cs-card border border-slate-800 p-4 space-y-3 font-mono text-xs shadow-xl hover:border-amber-500/50 transition-all">
       <div class="flex items-center justify-between border-b border-slate-800 pb-2">
         <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold text-[10px]">${p.role}</span>
-        <span class="${chemColor} text-[10px]">默契 ${p.chemistry}%</span>
+        <span class="${chemColor} text-[10px] font-bold">默契 ${p.chemistry}%</span>
       </div>
-      <div class="text-base font-extrabold text-white">${p.name}</div>
-      <div class="flex flex-wrap gap-1">${perkBadges || '<span class="text-slate-500 text-[9px]">暂无 Perk</span>'}</div>
-      <div class="space-y-1.5 text-[11px]">
-        <div class="flex justify-between items-center"><span>Aim 枪法: <strong class="text-emerald-400">${p.aim}</strong></span><button onclick="trainStat('${p.id}','aim')" class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[9px] hover:bg-emerald-500/30">+2 (2TP)</button></div>
-        <div class="flex justify-between items-center"><span>Sense 意识: <strong class="text-cyan-400">${p.sense}</strong></span><button onclick="trainStat('${p.id}','sense')" class="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 text-[9px] hover:bg-cyan-500/30">+2 (2TP)</button></div>
-        <div class="flex justify-between items-center"><span>Clutch 残局: <strong class="text-amber-400">${p.clutch}</strong></span><button onclick="trainStat('${p.id}','clutch')" class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[9px] hover:bg-amber-500/30">+2 (2TP)</button></div>
-        <div class="flex justify-between items-center"><span>Speed 身法: <strong class="text-purple-400">${p.movement}</strong></span><button onclick="trainStat('${p.id}','movement')" class="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 text-[9px] hover:bg-purple-500/30">+2 (2TP)</button></div>
-        <div class="flex justify-between"><span>Morale 士气:</span><strong class="text-slate-200">${p.morale}%</strong></div>
+      <div class="text-lg font-extrabold text-white">${p.name}</div>
+      <div class="flex flex-wrap gap-1">${perkBadges || '<span class="text-slate-500 text-[10px]">通用选手</span>'}</div>
+      <div class="space-y-2 text-[11px] pt-1 border-t border-slate-800/80">
+        <div class="flex justify-between"><span>Aim 枪法:</span><strong class="text-emerald-400 font-bold text-sm">${p.aim}</strong></div>
+        <div class="flex justify-between"><span>Sense 意识:</span><strong class="text-cyan-400 font-bold text-sm">${p.sense}</strong></div>
+        <div class="flex justify-between"><span>Clutch 残局:</span><strong class="text-amber-400 font-bold text-sm">${p.clutch}</strong></div>
+        <div class="flex justify-between"><span>Speed 身法:</span><strong class="text-purple-400 font-bold text-sm">${p.movement}</strong></div>
+        <div class="flex justify-between"><span>Morale 士气:</span><strong class="text-white font-bold">${p.morale}%</strong></div>
       </div>
-      <div class="pt-2 border-t border-slate-800 space-y-1">
-        <div class="text-[9px] text-slate-400 font-bold">解锁 Perk 特长:</div>
-        <div class="flex flex-wrap gap-1">${availablePerks}</div>
+      <div class="pt-2 border-t border-slate-800 text-[10px] text-slate-400 flex items-center justify-between">
+        <span>月薪: $${p.salary}</span>
+        <span class="text-emerald-400 font-bold">首发</span>
       </div>
     </div>`;
   }).join('');
@@ -768,7 +683,6 @@ function renderAcademy() {
         <div>Aim: <strong class="text-emerald-400">${p.aim}</strong></div><div>Sense: <strong class="text-cyan-400">${p.sense}</strong></div>
         <div>Clutch: <strong class="text-amber-400">${p.clutch}</strong></div><div>Morale: <strong class="text-white">${p.morale}%</strong></div>
       </div>
-      <div class="text-[10px] text-cyan-400">💡 属性较低但高士气 & 可通过训练培养</div>
       <button onclick="buyPlayer('${p.id}')" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-lg shadow-emerald-500/20 transition-all">🌱 签约青训新人 ($${p.value.toLocaleString()})</button>
     </div>`).join('');
 }
@@ -776,14 +690,12 @@ function renderAcademy() {
 function renderMatchUI() {
   const m = gameState.currentMatch;
   if (!m) return;
-  const opp = getOppProfile(m.opponent);
 
   setEl('match-my-team-name', gameState.club.name);
   setEl('match-opp-team-name', m.opponent);
   setEl('score-my', m.scoreMy); setEl('score-opp', m.scoreOpp);
   setEl('match-round-counter', `ROUND ${m.roundNum} / 24 ${m.format === 'BO3' ? `| MAP ${m.currentMapIndex + 1}/3 (${m.seriesScoreMy}-${m.seriesScoreOpp})` : ''}`);
 
-  // Side badges
   const mySideText = el('match-my-side-text'), oppSideText = el('match-opp-side-text');
   const myBadge = el('badge-my-side'), oppBadge = el('badge-opp-side');
   if (mySideText && oppSideText && myBadge && oppBadge) {
@@ -796,24 +708,20 @@ function renderMatchUI() {
     oppBadge.className = m.mySide === 'CT' ? tClass : ctClass;
   }
 
-  // Map & Ban info
-  setEl('match-map-name', `${m.maps[m.currentMapIndex]} (${m.mySide} vs ${m.oppSide})`);
-  setEl('match-ban-info', `BAN: ${m.bannedMaps.join(', ')} | ${m.format}`);
+  setEl('match-map-name', `DE_DUST2 (${m.mySide} vs ${m.oppSide})`);
+  setEl('match-ban-info', `BAN: DE_INFERNO, DE_MIRAGE | ${m.format}`);
 
-  // Stage title
   const sm = getCurrentSeasonMatch();
-  setEl('major-stage-title', sm ? `${PHASE_CONFIG[sm.phase]?.label || sm.phase} | ${m.format}` : '');
+  setEl('major-stage-title', sm ? `${PHASE_CONFIG[sm.phase]?.label || sm.phase} | DE_DUST2` : '');
 
-  // Economy
   setEl('eco-my-team', gameState.club.name); setEl('eco-opp-team', m.opponent);
   setEl('eco-my-buy-type', `BUY: ${m.myBuyType}`); setEl('eco-opp-buy-type', `BUY: ${m.oppBuyType}`);
   setEl('eco-my-money', `$${m.myMoney.toLocaleString()}`); setEl('eco-opp-money', `$${m.oppMoney.toLocaleString()}`);
 
-  // Kill Feed
   const fb = el('kill-feed-box');
   if (fb) {
     if (!m.killFeed.length) {
-      fb.innerHTML = '<div class="text-slate-500 italic">点击"模拟下一回合"开始体验热血 CS 对决...</div>';
+      fb.innerHTML = '<div class="text-slate-500 italic">点击"模拟下一回合"开始体验 Dust2 对决...</div>';
     } else {
       fb.innerHTML = m.killFeed.map(log => {
         let cls = 'text-slate-300';
@@ -836,7 +744,7 @@ function renderBracket() {
 
   const playoffMatches = gameState.season.calendar.filter(m => m.phase === 'major_playoffs');
   if (!playoffMatches.length) {
-    view.innerHTML = `<div class="col-span-3 text-slate-500 text-xs italic py-8">Major 淘汰赛尚未开始。完成联赛和资格赛后即可解锁淘汰树。</div>`;
+    view.innerHTML = `<div class="col-span-3 text-slate-500 text-xs italic py-8">Major 淘汰赛尚未开始。完成 Dust2 联赛后解锁淘汰树。</div>`;
     return;
   }
 
@@ -885,7 +793,7 @@ function renderTrophyCabinet() {
   const cab = el('trophy-cabinet');
   if (!cab) return;
   if (!gameState.trophies.length) {
-    cab.innerHTML = '<div class="col-span-3 text-slate-500 text-xs italic py-4">尚未获得任何 Major 冠军奖杯。赢得 Major 淘汰赛冠军后，奖杯将在此展示！</div>';
+    cab.innerHTML = '<div class="col-span-3 text-slate-500 text-xs italic py-4">尚未获得 Dust2 Major 冠军奖杯。</div>';
     return;
   }
   cab.innerHTML = gameState.trophies.map(t => `
@@ -900,7 +808,6 @@ function renderTrophyCabinet() {
 function renderRankings() {
   const tbody = el('rankings-tbody');
   if (!tbody) return;
-  // Sort by rank
   gameState.hltvRankings.sort((a, b) => a.rank - b.rank);
   tbody.innerHTML = gameState.hltvRankings.map(r => {
     const isUser = r.name === gameState.club.name;
@@ -915,32 +822,39 @@ function renderRankings() {
 }
 
 /* ==========================================================================
-   9. 2D LIVE RADAR ENGINE — 2D 实时战术雷达地图模拟引擎
+   8. 2D LIVE DUST2 RADAR VISUALIZER — DUST II 专属战术雷达引擎
    ========================================================================== */
 let radarCanvas = null;
 let radarCtx = null;
 let radarAnimationId = null;
 
-// 雷达中的 10 个选手的状态坐标
 let radarEntities = {
   cts: [],
   ts: [],
-  tracers: [], // 枪火弹道射线
-  smokes: [],  // 烟雾弹
+  tracers: [],
+  smokes: [],
   c4: { active: false, x: 0, y: 0, plantedAt: null, timer: 0 },
-  roundPhase: 'PREP' // PREP, ENGAGE, PLANTED, END
+  roundPhase: 'PREP'
 };
 
-// CS 地图经典战术区域坐标基准 (800 x 450 Canvas)
-const RADAR_ZONES = {
-  ctSpawn: { x: 700, y: 225 },
-  tSpawn:  { x: 100, y: 225 },
-  siteA:   { x: 550, y: 100, label: 'A SITE' },
-  siteB:   { x: 550, y: 350, label: 'B SITE' },
-  mid:     { x: 400, y: 225, label: 'MIDDLE' },
-  aLong:   { x: 300, y: 100, label: 'A LONG' },
-  bApps:   { x: 300, y: 350, label: 'B APPS' },
-  banana:  { x: 450, y: 330, label: 'BANANA' },
+// 真实的 CS:GO DE_DUST2 战术区域精准坐标 (800 x 450 Canvas)
+const DUST2_ZONES = {
+  tSpawn:    { x: 100, y: 380, label: 'T SPAWN' },
+  outsideLong:{ x: 260, y: 380, label: 'OUTSIDE LONG' },
+  longDoors: { x: 420, y: 380, label: 'LONG DOORS' },
+  pit:       { x: 550, y: 400, label: 'PIT' },
+  aLong:     { x: 660, y: 320, label: 'A LONG' },
+  aSite:     { x: 680, y: 130, label: 'A SITE' },
+  goose:     { x: 740, y: 100, label: 'GOOSE' },
+  shortA:    { x: 530, y: 170, label: 'SHORT A' },
+  catwalk:   { x: 440, y: 220, label: 'CATWALK' },
+  mid:       { x: 350, y: 240, label: 'MID DOORS' },
+  suicide:   { x: 220, y: 280, label: 'SUICIDE' },
+  lowerTunnel:{ x: 250, y: 200, label: 'LOWER TUNNEL' },
+  upperTunnel:{ x: 150, y: 180, label: 'UPPER TUNNEL' },
+  bSite:     { x: 160, y: 90,  label: 'B SITE' },
+  bDoors:    { x: 280, y: 100, label: 'B DOORS' },
+  ctSpawn:   { x: 480, y: 90,  label: 'CT SPAWN' },
 };
 
 function initRadarCanvas() {
@@ -968,22 +882,22 @@ function resetRadarPositions() {
 
   radarEntities.cts = ctNames.map((name, i) => ({
     id: `ct_${i}`, name, team: 'CT',
-    x: RADAR_ZONES.ctSpawn.x + (Math.random() * 40 - 20),
-    y: RADAR_ZONES.ctSpawn.y + (i * 30 - 60),
-    targetX: RADAR_ZONES.ctSpawn.x,
-    targetY: RADAR_ZONES.ctSpawn.y,
+    x: DUST2_ZONES.ctSpawn.x + (Math.random() * 40 - 20),
+    y: DUST2_ZONES.ctSpawn.y + (i * 20 - 40),
+    targetX: DUST2_ZONES.ctSpawn.x,
+    targetY: DUST2_ZONES.ctSpawn.y,
     hp: 100, isAlive: true,
-    color: '#38bdf8' // 蓝色
+    color: '#38bdf8'
   }));
 
   radarEntities.ts = tNames.map((name, i) => ({
     id: `t_${i}`, name, team: 'T',
-    x: RADAR_ZONES.tSpawn.x + (Math.random() * 40 - 20),
-    y: RADAR_ZONES.tSpawn.y + (i * 30 - 60),
-    targetX: RADAR_ZONES.tSpawn.x,
-    targetY: RADAR_ZONES.tSpawn.y,
+    x: DUST2_ZONES.tSpawn.x + (Math.random() * 40 - 20),
+    y: DUST2_ZONES.tSpawn.y + (i * 20 - 40),
+    targetX: DUST2_ZONES.tSpawn.x,
+    targetY: DUST2_ZONES.tSpawn.y,
     hp: 100, isAlive: true,
-    color: '#f97316' // 橙色
+    color: '#f97316'
   }));
 
   radarEntities.tracers = [];
@@ -996,63 +910,71 @@ function resetRadarPositions() {
   
   const tag = document.getElementById('radar-status-tag');
   if (tag) {
-    tag.textContent = '准备阶段 (PREP)';
+    tag.textContent = 'Dust2 准备阶段 (PREP)';
     tag.className = 'px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold';
   }
 }
 
-// 模拟回合时触发现场人物点对战与走位
+// 模拟 Dust2 经典进攻战术 (RUSH A LONG / PUSH B TUNNELS / MID TO SHORT)
 function triggerRadarBattle(myWon) {
   if (!radarCtx) initRadarCanvas();
 
-  const isA = Math.random() < 0.5;
-  const targetSite = isA ? RADAR_ZONES.siteA : RADAR_ZONES.siteB;
-  const targetChoke = isA ? RADAR_ZONES.aLong : RADAR_ZONES.bApps;
+  const stratRoll = Math.random();
+  let stratName = 'A LONG RUSH';
+  let targetSite = DUST2_ZONES.aSite;
+  let tRoute = [DUST2_ZONES.outsideLong, DUST2_ZONES.longDoors, DUST2_ZONES.aLong];
+
+  if (stratRoll < 0.35) {
+    stratName = 'B TUNNELS RUSH';
+    targetSite = DUST2_ZONES.bSite;
+    tRoute = [DUST2_ZONES.upperTunnel, DUST2_ZONES.bSite];
+  } else if (stratRoll < 0.7) {
+    stratName = 'MID TO SHORT A';
+    targetSite = DUST2_ZONES.aSite;
+    tRoute = [DUST2_ZONES.suicide, DUST2_ZONES.catwalk, DUST2_ZONES.shortA];
+  }
 
   radarEntities.roundPhase = 'ENGAGE';
   const tag = document.getElementById('radar-status-tag');
   if (tag) {
-    tag.textContent = `交火阶段 (RUSH ${isA ? 'A' : 'B'})`;
+    tag.textContent = ` Dust2 战术: ${stratName}`;
     tag.className = 'px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-400 font-bold animate-pulse';
   }
 
-  // T 点向前推进
+  // 阶段 1: T 点沿 Dust2 战术路径推进
   radarEntities.ts.forEach((t, i) => {
     if (!t.isAlive) return;
-    t.targetX = targetChoke.x + Math.random() * 80 - 40;
-    t.targetY = targetChoke.y + Math.random() * 80 - 40;
+    const waypoint = tRoute[Math.min(i, tRoute.length - 1)];
+    t.targetX = waypoint.x + Math.random() * 50 - 25;
+    t.targetY = waypoint.y + Math.random() * 50 - 25;
   });
 
-  // CT 点防守关键点
+  // CT 点在 A 门、B 洞门、中门 AWP 位的经典防守点架枪
   radarEntities.cts.forEach((ct, i) => {
     if (!ct.isAlive) return;
-    if (i < 3) {
-      ct.targetX = targetSite.x + Math.random() * 60 - 30;
-      ct.targetY = targetSite.y + Math.random() * 60 - 30;
-    } else {
-      ct.targetX = RADAR_ZONES.mid.x + Math.random() * 50 - 25;
-      ct.targetY = RADAR_ZONES.mid.y + Math.random() * 50 - 25;
-    }
+    if (i === 0) { ct.targetX = DUST2_ZONES.mid.x; ct.targetY = DUST2_ZONES.ctSpawn.y + 30; } // Mid AWP
+    else if (i <= 2) { ct.targetX = DUST2_ZONES.aSite.x + Math.random() * 40 - 20; ct.targetY = DUST2_ZONES.aSite.y + Math.random() * 40 - 20; }
+    else { ct.targetX = DUST2_ZONES.bSite.x + Math.random() * 40 - 20; ct.targetY = DUST2_ZONES.bSite.y + Math.random() * 40 - 20; }
   });
 
-  // 1 秒后触发包点交火与 C4 爆破
+  // 阶段 2: 进包点交火与 C4 爆破
   setTimeout(() => {
-    // 烟雾弹效果
-    radarEntities.smokes.push({ x: targetSite.x + (Math.random() * 40 - 20), y: targetSite.y + (Math.random() * 40 - 20), radius: 35, opacity: 0.8 });
+    // 烟雾弹遮挡 (如 A 大封烟或 B 洞封烟)
+    radarEntities.smokes.push({ x: targetSite.x + (Math.random() * 30 - 15), y: targetSite.y + (Math.random() * 30 - 15), radius: 35, opacity: 0.8 });
 
-    // T 进点
+    // T 进入包点
     radarEntities.ts.forEach(t => {
       if (t.isAlive) {
-        t.targetX = targetSite.x + Math.random() * 70 - 35;
-        t.targetY = targetSite.y + Math.random() * 70 - 35;
+        t.targetX = targetSite.x + Math.random() * 60 - 30;
+        t.targetY = targetSite.y + Math.random() * 60 - 30;
       }
     });
 
-    // 生成弹道 Tracer
+    // 生成 Dust2 弹道闪光
     const aliveCTs = radarEntities.cts.filter(c => c.isAlive);
     const aliveTs = radarEntities.ts.filter(t => t.isAlive);
 
-    for (let k = 0; k < 6; k++) {
+    for (let k = 0; k < 7; k++) {
       if (aliveCTs.length && aliveTs.length) {
         const ct = aliveCTs[Math.floor(Math.random() * aliveCTs.length)];
         const t = aliveTs[Math.floor(Math.random() * aliveTs.length)];
@@ -1062,50 +984,46 @@ function triggerRadarBattle(myWon) {
       }
     }
 
-    // 判定淘汰伤亡点
     if (myWon) {
-      // 对手方多死几个点
       const loserTeam = gameState.currentMatch?.mySide === 'CT' ? radarEntities.ts : radarEntities.cts;
       const winnerTeam = gameState.currentMatch?.mySide === 'CT' ? radarEntities.cts : radarEntities.ts;
-      
-      loserTeam.filter(p => p.isAlive).slice(0, 3).forEach(p => { p.isAlive = false; p.hp = 0; });
-      winnerTeam.filter(p => p.isAlive).slice(0, 1).forEach(p => { p.hp = 30; });
+      loserTeam.filter(p => p.isAlive).slice(0, 4).forEach(p => { p.isAlive = false; p.hp = 0; });
+      winnerTeam.filter(p => p.isAlive).slice(0, 1).forEach(p => { p.hp = 25; });
     } else {
       const loserTeam = gameState.currentMatch?.mySide === 'CT' ? radarEntities.cts : radarEntities.ts;
-      loserTeam.filter(p => p.isAlive).slice(0, 3).forEach(p => { p.isAlive = false; p.hp = 0; });
+      loserTeam.filter(p => p.isAlive).slice(0, 4).forEach(p => { p.isAlive = false; p.hp = 0; });
     }
 
-    // C4 炸弹安放动画判定
-    if (Math.random() < 0.6) {
+    if (Math.random() < 0.65) {
       radarEntities.c4.active = true;
       radarEntities.c4.x = targetSite.x;
       radarEntities.c4.y = targetSite.y;
-      radarEntities.c4.plantedAt = isA ? 'A SITE' : 'B SITE';
+      radarEntities.c4.plantedAt = targetSite.label;
       
       const alertBanner = document.getElementById('c4-alert-banner');
       if (alertBanner) alertBanner.classList.remove('hidden');
     }
-  }, 400);
+  }, 450);
 }
 
-// 60FPS 实时 Canvas 渲染 Loop
+// 60FPS Radar 渲染
 function radarLoop() {
   if (radarCtx && radarCanvas) {
-    drawRadarScene();
+    drawDust2Radar();
   }
   requestAnimationFrame(radarLoop);
 }
 
-function drawRadarScene() {
+function drawDust2Radar() {
   const width = radarCanvas.width;
   const height = radarCanvas.height;
 
-  // 1. 清空与背景底色
-  radarCtx.fillStyle = '#090d16';
+  // 1. Dust2 黄褐色沙尘暗色底色
+  radarCtx.fillStyle = '#0f131d';
   radarCtx.fillRect(0, 0, width, height);
 
-  // 网格战术背景
-  radarCtx.strokeStyle = 'rgba(30, 41, 59, 0.5)';
+  // 战术网格
+  radarCtx.strokeStyle = 'rgba(40, 53, 76, 0.4)';
   radarCtx.lineWidth = 1;
   for (let x = 0; x < width; x += 40) {
     radarCtx.beginPath(); radarCtx.moveTo(x, 0); radarCtx.lineTo(x, height); radarCtx.stroke();
@@ -1114,10 +1032,10 @@ function drawRadarScene() {
     radarCtx.beginPath(); radarCtx.moveTo(0, y); radarCtx.lineTo(width, y); radarCtx.stroke();
   }
 
-  // 2. 绘制 CS 经典地图墙体与包点 layout
-  drawMapStructure(width, height);
+  // 2. 绘制 100% 真实 Dust II 战术地图全貌
+  drawDust2MapLayout(width, height);
 
-  // 3. 绘制烟雾弹遮挡
+  // 3. 烟雾弹效果
   radarEntities.smokes.forEach(s => {
     radarCtx.beginPath();
     radarCtx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
@@ -1126,11 +1044,11 @@ function drawRadarScene() {
     s.radius = Math.min(45, s.radius + 0.1);
   });
 
-  // 4. 绘制 C4 炸弹脉冲动画
+  // 4. C4 炸弹脉冲
   if (radarEntities.c4.active) {
     const pulse = (Date.now() % 1000) / 1000;
     radarCtx.beginPath();
-    radarCtx.arc(radarEntities.c4.x, radarEntities.c4.y, 10 + pulse * 20, 0, Math.PI * 2);
+    radarCtx.arc(radarEntities.c4.x, radarEntities.c4.y, 10 + pulse * 22, 0, Math.PI * 2);
     radarCtx.strokeStyle = `rgba(244, 63, 94, ${1 - pulse})`;
     radarCtx.lineWidth = 3;
     radarCtx.stroke();
@@ -1141,7 +1059,7 @@ function drawRadarScene() {
     radarCtx.fill();
   }
 
-  // 5. 绘制弹道 Gunfire Tracers
+  // 5. 弹道 Tracers
   radarEntities.tracers.forEach(t => {
     radarCtx.beginPath();
     radarCtx.moveTo(t.x1, t.y1);
@@ -1153,17 +1071,15 @@ function drawRadarScene() {
   });
   radarEntities.tracers = radarEntities.tracers.filter(t => t.opacity > 0);
 
-  // 6. 更新与绘制 CT (蓝色) & T (橙色) 选手圆点
+  // 6. 绘制 CT (蓝色) & T (橙色) 选手圆点
   const allPlayers = [...radarEntities.cts, ...radarEntities.ts];
 
   allPlayers.forEach(p => {
-    // 平滑插值走向目标点
     p.x += (p.targetX - p.x) * 0.08;
     p.y += (p.targetY - p.y) * 0.08;
 
     if (!p.isAlive) {
-      // 阵亡标 X 💀
-      radarCtx.fillStyle = 'rgba(100, 116, 139, 0.6)';
+      radarCtx.fillStyle = 'rgba(148, 163, 184, 0.5)';
       radarCtx.font = 'bold 12px monospace';
       radarCtx.fillText('✖', p.x - 4, p.y + 4);
       return;
@@ -1176,14 +1092,12 @@ function drawRadarScene() {
     radarCtx.shadowColor = p.team === 'CT' ? '#38bdf8' : '#f97316';
     radarCtx.shadowBlur = 10;
     radarCtx.fill();
-    radarCtx.shadowBlur = 0; // 重置光芒
+    radarCtx.shadowBlur = 0;
 
-    // 圆点外圈白色边框
     radarCtx.lineWidth = 2;
     radarCtx.strokeStyle = '#ffffff';
     radarCtx.stroke();
 
-    // 名字 Label
     radarCtx.fillStyle = p.team === 'CT' ? '#7dd3fc' : '#ffedd5';
     radarCtx.font = 'bold 10px monospace';
     radarCtx.textAlign = 'center';
@@ -1191,55 +1105,74 @@ function drawRadarScene() {
   });
 }
 
-// 绘制平面战术地图结构 (A区, B区, 中路, 路线)
-function drawMapStructure(width, height) {
-  const m = gameState.currentMatch;
-  const mapName = m ? m.maps[m.currentMapIndex] : 'DE_INFERNO';
+// 绘制经典 Dust2 核心地图布局 Line Paths & Sites
+function drawDust2MapLayout(width, height) {
+  radarCtx.lineWidth = 4;
+  radarCtx.strokeStyle = '#3b4252';
 
-  radarCtx.lineWidth = 3;
-  radarCtx.strokeStyle = '#334155';
-
-  // 绘制通道路线 Line Paths
+  // 绘制 Dust2 走廊与连线
   radarCtx.beginPath();
-  // T Spawn to Mid & Sites
-  radarCtx.moveTo(RADAR_ZONES.tSpawn.x, RADAR_ZONES.tSpawn.y);
-  radarCtx.lineTo(RADAR_ZONES.mid.x, RADAR_ZONES.mid.y);
-  radarCtx.lineTo(RADAR_ZONES.ctSpawn.x, RADAR_ZONES.ctSpawn.y);
 
-  radarCtx.moveTo(RADAR_ZONES.tSpawn.x, RADAR_ZONES.tSpawn.y);
-  radarCtx.lineTo(RADAR_ZONES.aLong.x, RADAR_ZONES.aLong.y);
-  radarCtx.lineTo(RADAR_ZONES.siteA.x, RADAR_ZONES.siteA.y);
-  radarCtx.lineTo(RADAR_ZONES.ctSpawn.x, RADAR_ZONES.ctSpawn.y);
+  // T Spawn -> Outside Long -> Long Doors -> A Long -> A Site
+  radarCtx.moveTo(DUST2_ZONES.tSpawn.x, DUST2_ZONES.tSpawn.y);
+  radarCtx.lineTo(DUST2_ZONES.outsideLong.x, DUST2_ZONES.outsideLong.y);
+  radarCtx.lineTo(DUST2_ZONES.longDoors.x, DUST2_ZONES.longDoors.y);
+  radarCtx.lineTo(DUST2_ZONES.aLong.x, DUST2_ZONES.aLong.y);
+  radarCtx.lineTo(DUST2_ZONES.aSite.x, DUST2_ZONES.aSite.y);
 
-  radarCtx.moveTo(RADAR_ZONES.tSpawn.x, RADAR_ZONES.tSpawn.y);
-  radarCtx.lineTo(RADAR_ZONES.bApps.x, RADAR_ZONES.bApps.y);
-  radarCtx.lineTo(RADAR_ZONES.siteB.x, RADAR_ZONES.siteB.y);
-  radarCtx.lineTo(RADAR_ZONES.ctSpawn.x, RADAR_ZONES.ctSpawn.y);
+  // Pit
+  radarCtx.moveTo(DUST2_ZONES.longDoors.x, DUST2_ZONES.longDoors.y);
+  radarCtx.lineTo(DUST2_ZONES.pit.x, DUST2_ZONES.pit.y);
+
+  // T Spawn -> Suicide -> Mid Doors -> CT Spawn
+  radarCtx.moveTo(DUST2_ZONES.tSpawn.x, DUST2_ZONES.tSpawn.y);
+  radarCtx.lineTo(DUST2_ZONES.suicide.x, DUST2_ZONES.suicide.y);
+  radarCtx.lineTo(DUST2_ZONES.mid.x, DUST2_ZONES.mid.y);
+  radarCtx.lineTo(DUST2_ZONES.ctSpawn.x, DUST2_ZONES.ctSpawn.y);
+
+  // Mid -> Catwalk -> Short A -> A Site
+  radarCtx.moveTo(DUST2_ZONES.mid.x, DUST2_ZONES.mid.y);
+  radarCtx.lineTo(DUST2_ZONES.catwalk.x, DUST2_ZONES.catwalk.y);
+  radarCtx.lineTo(DUST2_ZONES.shortA.x, DUST2_ZONES.shortA.y);
+  radarCtx.lineTo(DUST2_ZONES.aSite.x, DUST2_ZONES.aSite.y);
+
+  // T Spawn -> B Upper Tunnel -> B Site
+  radarCtx.moveTo(DUST2_ZONES.tSpawn.x, DUST2_ZONES.tSpawn.y);
+  radarCtx.lineTo(DUST2_ZONES.upperTunnel.x, DUST2_ZONES.upperTunnel.y);
+  radarCtx.lineTo(DUST2_ZONES.bSite.x, DUST2_ZONES.bSite.y);
+
+  // B Lower Tunnel -> Mid
+  radarCtx.moveTo(DUST2_ZONES.upperTunnel.x, DUST2_ZONES.upperTunnel.y);
+  radarCtx.lineTo(DUST2_ZONES.lowerTunnel.x, DUST2_ZONES.lowerTunnel.y);
+  radarCtx.lineTo(DUST2_ZONES.mid.x, DUST2_ZONES.mid.y);
+
+  // CT Spawn -> A Site & CT Spawn -> B Doors -> B Site
+  radarCtx.moveTo(DUST2_ZONES.ctSpawn.x, DUST2_ZONES.ctSpawn.y);
+  radarCtx.lineTo(DUST2_ZONES.aSite.x, DUST2_ZONES.aSite.y);
+  radarCtx.moveTo(DUST2_ZONES.ctSpawn.x, DUST2_ZONES.ctSpawn.y);
+  radarCtx.lineTo(DUST2_ZONES.bDoors.x, DUST2_ZONES.bDoors.y);
+  radarCtx.lineTo(DUST2_ZONES.bSite.x, DUST2_ZONES.bSite.y);
 
   radarCtx.stroke();
 
-  // A 包点 Zone
-  drawZoneBox(RADAR_ZONES.siteA.x, RADAR_ZONES.siteA.y, 90, 60, 'A SITE', '#f59e0b');
+  // 绘制 Dust2 核心包点区域
+  drawDust2ZoneBox(DUST2_ZONES.aSite.x, DUST2_ZONES.aSite.y, 90, 60, 'A SITE', '#f59e0b');
+  drawDust2ZoneBox(DUST2_ZONES.bSite.x, DUST2_ZONES.bSite.y, 90, 60, 'B SITE', '#f59e0b');
+  drawDust2ZoneBox(DUST2_ZONES.ctSpawn.x, DUST2_ZONES.ctSpawn.y, 80, 50, 'CT SPAWN', '#38bdf8');
+  drawDust2ZoneBox(DUST2_ZONES.tSpawn.x, DUST2_ZONES.tSpawn.y, 80, 50, 'T SPAWN', '#f97316');
 
-  // B 包点 Zone
-  drawZoneBox(RADAR_ZONES.siteB.x, RADAR_ZONES.siteB.y, 90, 60, 'B SITE', '#f59e0b');
-
-  // CT & T 出生点 Base Boxes
-  drawZoneBox(RADAR_ZONES.ctSpawn.x, RADAR_ZONES.ctSpawn.y, 70, 70, 'CT BASE', '#38bdf8');
-  drawZoneBox(RADAR_ZONES.tSpawn.x, RADAR_ZONES.tSpawn.y, 70, 70, 'T BASE', '#f97316');
-
-  // 顶端地图标
-  radarCtx.fillStyle = '#94a3b8';
-  radarCtx.font = 'bold 12px monospace';
+  // 地图名标题
+  radarCtx.fillStyle = '#f59e0b';
+  radarCtx.font = 'bold 13px monospace';
   radarCtx.textAlign = 'left';
-  radarCtx.fillText(`MAP: ${mapName} // 2D RADAR OBSERVER`, 15, 25);
+  radarCtx.fillText('MAP: DE_DUST2 // CS:GO CLASSIC TACTICAL RADAR', 15, 25);
 }
 
-function drawZoneBox(cx, cy, w, h, label, color) {
+function drawDust2ZoneBox(cx, cy, w, h, label, color) {
   const x = cx - w / 2;
   const y = cy - h / 2;
-  radarCtx.fillStyle = `${color}15`; // 15% 透明度
-  radarCtx.strokeStyle = `${color}60`;
+  radarCtx.fillStyle = `${color}20`;
+  radarCtx.strokeStyle = `${color}80`;
   radarCtx.lineWidth = 1.5;
 
   radarCtx.fillRect(x, y, w, h);
@@ -1251,7 +1184,7 @@ function drawZoneBox(cx, cy, w, h, label, color) {
   radarCtx.fillText(label, cx, cy + 4);
 }
 
-// 挂钩到模拟回合函数 simulateRound
+// 挂钩模拟回合
 const originalSimulateRound = simulateRound;
 simulateRound = function() {
   const m = gameState.currentMatch;
@@ -1264,14 +1197,12 @@ simulateRound = function() {
   }
 };
 
-// 挂钩到匹配新对手时重置雷达
 const originalInitNewMatch = initNewMatch;
 initNewMatch = function(oppName, format) {
   originalInitNewMatch(oppName, format);
   resetRadarPositions();
 };
 
-// 页面加载完成后初始化 Canvas
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(initRadarCanvas, 200);
 });

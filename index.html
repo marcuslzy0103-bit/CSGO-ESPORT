@@ -74,7 +74,7 @@
         </div>
       </div>
 
-      <!-- 中间：战队资金、训练点数 & HLTV 排名 -->
+      <!-- 中间：战队资金 & HLTV 排名 -->
       <div class="hidden lg:flex items-center gap-5 font-mono text-xs">
         <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800">
           <span class="text-slate-400">💰 资金:</span>
@@ -82,8 +82,8 @@
         </div>
 
         <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800">
-          <span class="text-slate-400">⚡ 训练点数 (TP):</span>
-          <span id="header-tp" class="text-cyan-400 font-bold text-sm">15 TP</span>
+          <span class="text-slate-400">🗺️ 比赛地图:</span>
+          <span class="text-amber-400 font-bold text-sm">de_dust2</span>
         </div>
 
         <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800">
@@ -117,13 +117,13 @@
           <span>📊 俱乐部概览</span>
         </button>
         <button data-tab="roster" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
-          <span>👥 战队阵容 & 训练 Perks</span>
+          <span>👥 战队阵容 & 选手特长</span>
         </button>
         <button data-tab="transfers" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
           <span>🛒 转会与青训营</span>
         </button>
         <button data-tab="match" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
-          <span>⚔️ 比赛 & Major BO3</span>
+          <span>⚔️ Dust2 2D 比赛观战</span>
         </button>
         <button data-tab="stats" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
           <span>📈 HLTV 深度数据与殿堂</span>
@@ -147,19 +147,19 @@
         <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
           <div class="md:col-span-8 space-y-3">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 font-mono text-xs font-bold text-amber-400">
-              <span>🏆 MAJOR QUALIFIERS // IEM KATOWICE CHAMPIONSHIP</span>
+              <span>🏆 CS:GO DUST II CHAMPIONSHIP</span>
             </div>
             <h2 class="text-2xl sm:text-3xl font-extrabold text-white">
               下一场对决：<span id="dash-next-opp" class="text-amber-400">FaZe Clan</span>
             </h2>
             <p class="text-slate-400 text-xs sm:text-sm max-w-xl">
-              使用训练点数 (TP) 强化首发选手的枪法与残局能力，为即将到来的 Major BO3 淘汰战做足全盘准备！
+              固定 Dust2 经典战场！2D 实时观战雷达带你直击 CT 与 T 强强对抗！
             </p>
           </div>
 
           <div class="md:col-span-4 flex flex-col items-start md:items-end justify-center gap-3">
             <button id="dash-btn-play" class="w-full md:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-mono font-extrabold text-sm shadow-xl shadow-amber-500/20 transition-all transform hover:-translate-y-0.5">
-              ⚔️ 进入比赛大厅 (MATCH ARENA)
+              ⚔️ 进入 Dust2 比赛 (MATCH ARENA)
             </button>
           </div>
         </div>
@@ -170,19 +170,19 @@
         <div class="rounded-xl bg-cs-card border border-slate-800 p-5 shadow-xl">
           <div class="font-mono text-xs text-slate-400 mb-1">战队平均 Firepower (枪术)</div>
           <div id="dash-avg-aim" class="text-2xl font-extrabold font-mono text-amber-400">84.2</div>
-          <div class="mt-2 text-[11px] text-slate-500 font-mono">包含训练 Perk 称号加成</div>
+          <div class="mt-2 text-[11px] text-slate-500 font-mono">基于选手初始天赋与角色</div>
         </div>
 
         <div class="rounded-xl bg-cs-card border border-slate-800 p-5 shadow-xl">
-          <div class="font-mono text-xs text-slate-400 mb-1">可用训练点数 (Training Points)</div>
-          <div id="dash-tp-display" class="text-2xl font-extrabold font-mono text-cyan-400">15 TP</div>
-          <div class="mt-2 text-[11px] text-slate-500 font-mono">每场比赛胜利后可获 TP 升级</div>
+          <div class="font-mono text-xs text-slate-400 mb-1">比赛指定地图 (Map)</div>
+          <div class="text-2xl font-extrabold font-mono text-cyan-400">DE_DUST2</div>
+          <div class="mt-2 text-[11px] text-slate-500 font-mono">CS:GO 经典战术地图</div>
         </div>
 
         <div class="rounded-xl bg-cs-card border border-slate-800 p-5 shadow-xl">
           <div class="font-mono text-xs text-slate-400 mb-1">全队平均士气 (Morale)</div>
           <div id="dash-avg-morale" class="text-2xl font-extrabold font-mono text-emerald-400">92%</div>
-          <div class="mt-2 text-[11px] text-slate-500 font-mono">影响残局 1vN Clutch 爆种概率</div>
+          <div class="mt-2 text-[11px] text-slate-500 font-mono">影响残局 1vN Clutch 爆发率</div>
         </div>
 
         <div class="rounded-xl bg-cs-card border border-slate-800 p-5 shadow-xl">
@@ -232,26 +232,16 @@
       
       <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
         <div>
-          <h2 class="text-2xl font-extrabold text-white">战队阵容 & 训练 Perk 技能树</h2>
-          <p class="text-slate-400 text-xs mt-1">消耗训练点数 (TP) 强化选手的枪法 Aim、意识 Sense、残局 Clutch 并解锁顶级 Perk 特长称号！</p>
-        </div>
-
-        <div class="flex items-center gap-4">
-          <div class="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 font-mono text-xs text-cyan-400 font-bold">
-            可用 TP 点数: <span id="roster-tp-val" class="text-white text-sm">15 TP</span>
-          </div>
-
-          <button id="btn-buy-tp" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono font-bold text-xs shadow-lg shadow-amber-500/20 transition-all">
-            + 购买训练营课时 ($10,000 / 5 TP)
-          </button>
+          <h2 class="text-2xl font-extrabold text-white">战队阵容 & 选手特长 Perks</h2>
+          <p class="text-slate-400 text-xs mt-1">查看首发选手的枪术 Aim、意识 Sense、残局 Clutch、身法 Speed 以及固有 Perk 特长称号！</p>
         </div>
       </div>
 
-      <!-- 首发 5 人培训技能卡片 -->
+      <!-- 首发 5 人选手卡片 -->
       <div class="space-y-3">
-        <h3 class="font-mono text-xs font-bold text-amber-400 uppercase tracking-wider">🎯 首发选手技能树与特长 Perks (Lineup Training)</h3>
+        <h3 class="font-mono text-xs font-bold text-amber-400 uppercase tracking-wider">🎯 首发 5 人阵容档案 (Lineup Profiles)</h3>
         <div id="roster-training-cards" class="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <!-- 动态渲染选手技能卡片 -->
+          <!-- 动态渲染选手卡片 -->
         </div>
       </div>
 
