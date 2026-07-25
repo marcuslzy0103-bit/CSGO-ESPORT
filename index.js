@@ -1,79 +1,72 @@
 /**
- * COUNTER-MANAGER 2026 PRO // CS:GO & CS2 ESPORTS SIMULATION ENGINE
- * Fixed Map: DE_DUST2 2D Tactical Radar Visualizer
+ * BADMINTON LIFE PRO 2026 // 羽毛球人生与职业生涯 RPG 模拟引擎
+ * Full Engine: 0-38 Life Progression, Free Stat Allocation, Tournament Registration, 2D BWF Court Physics, Hawk-Eye.
  */
 
-const STORAGE_KEY = 'cs_manager_save_v6';
-const MAP_POOL = ['de_dust2']; // 固定经典 Dust II 地图
+const STORAGE_KEY = 'badminton_life_save_v1';
 
 /* ==========================================================================
-   TEAM AI PROFILES — 每支战队的独特战术风格与明星选手
+   STAT DEFINITIONS — 6 大自由属性加点定义
    ========================================================================== */
-const TEAM_PROFILES = {
-  'Natus Vincere': { style: 'awp_heavy', avgAim: 93, avgSense: 91, avgClutch: 94, star: 's1mple', region: '🇺化 Ukraine', points: 985 },
-  'Team Vitality':  { style: 'balanced',  avgAim: 92, avgSense: 95, avgClutch: 93, star: 'ZywOo',  region: '🇫🇷 France', points: 940 },
-  'FaZe Clan':      { style: 'firepower', avgAim: 95, avgSense: 88, avgClutch: 90, star: 'rain',   region: '🇪🇺 Europe', points: 890 },
-  'G2 Esports':     { style: 'tactical',  avgAim: 90, avgSense: 94, avgClutch: 88, star: 'NiKo',   region: '🇪🇺 Europe', points: 850 },
-  'MOUZ':           { style: 'aggressive', avgAim: 91, avgSense: 87, avgClutch: 89, star: 'frozen', region: '🇪🇺 Europe', points: 810 },
-  'Astralis':       { style: 'defensive', avgAim: 87, avgSense: 96, avgClutch: 86, star: 'dev1ce', region: '🇩🇰 Denmark', points: 760 },
-  'Heroic':         { style: 'tactical',  avgAim: 88, avgSense: 91, avgClutch: 85, star: 'stavn',  region: '🇩🇰 Denmark', points: 720 },
-  'FURIA Esports':  { style: 'aggressive', avgAim: 89, avgSense: 85, avgClutch: 87, star: 'KSCERATO', region: '🇧🇷 Brazil', points: 680 },
-  'Cloud9':         { style: 'balanced',  avgAim: 88, avgSense: 89, avgClutch: 86, star: 'HObbit', region: '🇺🇸 NA', points: 620 },
-  'ENCE':           { style: 'tactical',  avgAim: 86, avgSense: 90, avgClutch: 84, star: 'dycha',  region: '🇪🇺 Europe', points: 580 },
-  'Liquid':         { style: 'balanced',  avgAim: 87, avgSense: 88, avgClutch: 85, star: 'NAF',    region: '🇺🇸 NA', points: 560 },
-  'Complexity':     { style: 'aggressive', avgAim: 84, avgSense: 83, avgClutch: 82, star: 'JT',    region: '🇺🇸 NA', points: 420 },
-};
-const TEAM_NAMES = Object.keys(TEAM_PROFILES);
-
-/* ==========================================================================
-   PERK DEFINITIONS — 选手角色固有特长 (Innate Traits)
-   ========================================================================== */
-const PERK_DEFS = {
-  'AWP Specialist':  { stat: 'aim',      boost: 5, icon: '🔭', desc: 'AWP 狙击精通' },
-  'Clutch God':      { stat: 'clutch',   boost: 6, icon: '🧊', desc: '1vN 残局心态' },
-  'IGL Mastermind':  { stat: 'sense',    boost: 5, icon: '🧠', desc: '指挥读图' },
-  'Entry Machine':   { stat: 'aim',      boost: 4, icon: '💥', desc: '突破首杀' },
-  'Smoke Criminal':  { stat: 'sense',    boost: 4, icon: '💨', desc: '道具搜查' },
-  'Speed Demon':     { stat: 'movement', boost: 5, icon: '⚡', desc: '身法走位' },
+const STAT_DEFS = {
+  smash:      { name: '💥 杀球爆发力 (Smash Power)', desc: '提升重杀得分率与杀球最高时速 (最高 450+ km/h！)', color: 'text-amber-400', icon: '💥' },
+  footwork:   { name: '⚡ 步法身法 (Footwork Speed)', desc: '提升全场防守覆盖跑位速度与救球成功率', color: 'text-emerald-400', icon: '⚡' },
+  netTouch:   { name: '🎾 网前手感 (Net Touch)',     desc: '提升搓球、贴网放网、勾对角的得分率与网前压制力', color: 'text-cyan-400', icon: '🎾' },
+  stamina:    { name: '🫁 体能储备 (Stamina)',      desc: '降低第三局决胜局与 Deuce 拉锯战的体能衰减速度', color: 'text-purple-400', icon: '🫁' },
+  deception:  { name: '🎭 假动作与心态 (Deception)', desc: '提升停顿推球骗重心成功率与关键分抗压能力', color: 'text-pink-400', icon: '🎭' },
+  injuryRes:  { name: '🛡️ 抗伤病率 (Injury Res)',    desc: '降低高强度密集赛程下的膝盖/肩袖拉伤概率', color: 'text-blue-400', icon: '🛡️' }
 };
 
 /* ==========================================================================
-   DEFAULT GAME STATE — 默认游戏状态
+   DEFAULT GAME STATE — 从 0 岁出生默认游戏状态
    ========================================================================== */
 const defaultGameState = {
-  club: { name: 'CYBER WOLVES CS', region: '🇲🇾 Malaysia', coach: 'Marcus', budget: 100000, rank: 18, wins: 0, losses: 0 },
-  tacticStyle: 'balanced',
-  matchesPlayed: 0,
-  roster: [
-    { id: 'p1', name: 'Marcus',  role: 'AWPer',  aim: 88, sense: 85, clutch: 90, movement: 84, morale: 95, salary: 4500, value: 35000, perks: ['AWP Specialist'], chemistry: 100 },
-    { id: 'p2', name: 'Vortex',  role: 'IGL',    aim: 80, sense: 92, clutch: 82, movement: 78, morale: 90, salary: 3800, value: 28000, perks: ['IGL Mastermind'], chemistry: 100 },
-    { id: 'p3', name: 'Blaze',   role: 'Entry',  aim: 89, sense: 79, clutch: 80, movement: 88, morale: 88, salary: 3600, value: 26000, perks: ['Entry Machine'], chemistry: 100 },
-    { id: 'p4', name: 'Shadow',  role: 'Support',aim: 82, sense: 86, clutch: 84, movement: 80, morale: 92, salary: 3200, value: 22000, perks: ['Smoke Criminal'], chemistry: 100 },
-    { id: 'p5', name: 'Echo',    role: 'Lurker', aim: 85, sense: 88, clutch: 89, movement: 85, morale: 90, salary: 3400, value: 24000, perks: ['Clutch God'], chemistry: 100 }
-  ],
-  bench: [],
-  market: [
-    { id: 'm1', name: 's1mple_fan',   role: 'AWPer', aim: 96, sense: 94, clutch: 95, movement: 92, morale: 95, salary: 8500, value: 75000, perks: ['AWP Specialist'], chemistry: 50 },
-    { id: 'm2', name: 'ZywOo_JR',     role: 'AWPer', aim: 95, sense: 96, clutch: 94, movement: 90, morale: 96, salary: 8200, value: 72000, perks: ['AWP Specialist', 'Clutch God'], chemistry: 50 },
-    { id: 'm3', name: 'NiKo_Rifle',   role: 'Entry', aim: 97, sense: 90, clutch: 88, movement: 91, morale: 90, salary: 7800, value: 68000, perks: ['Entry Machine'], chemistry: 50 },
-    { id: 'm4', name: 'ropz_Lurk',    role: 'Lurker',aim: 92, sense: 97, clutch: 96, movement: 89, morale: 94, salary: 7500, value: 65000, perks: ['Smoke Criminal'], chemistry: 50 },
-    { id: 'm5', name: 'm0NESY_Flick', role: 'AWPer', aim: 95, sense: 92, clutch: 93, movement: 95, morale: 92, salary: 7900, value: 70000, perks: ['Speed Demon'], chemistry: 50 },
-    { id: 'm6', name: 'b1t_OneTap',   role: 'Entry', aim: 94, sense: 88, clutch: 86, movement: 87, morale: 90, salary: 5500, value: 45000, perks: ['Entry Machine'], chemistry: 50 }
-  ],
-  academy: [
-    { id: 'a1', name: 'Rookie_Ace',  role: 'Entry',  aim: 72, sense: 68, clutch: 70, movement: 75, morale: 98, salary: 1200, value: 8000, perks: ['Entry Machine'], chemistry: 50 },
-    { id: 'a2', name: 'Junior_AWP',  role: 'AWPer',  aim: 74, sense: 65, clutch: 68, movement: 70, morale: 95, salary: 1000, value: 6000, perks: ['AWP Specialist'], chemistry: 50 },
-    { id: 'a3', name: 'NewBlood_IGL',role: 'IGL',    aim: 68, sense: 76, clutch: 72, movement: 67, morale: 97, salary: 1100, value: 7000, perks: ['IGL Mastermind'], chemistry: 50 },
-  ],
-  season: { phase: 'league', matchIndex: 0, calendar: [] },
-  playerStats: {},
-  trophies: [],
-  hltvRankings: [],
-  currentMatch: null
+  player: {
+    name: '李宗伟 (Lee Chong Wei)',
+    country: '🇲🇾 马来西亚 (Malaysia)',
+    ageYears: 16,
+    ageWeeks: 24,
+    height: 178, // cm
+    stage: 'JUNIOR', // 'CHILDHOOD' (0-6), 'PRIMARY' (7-12), 'JUNIOR' (13-17), 'PRO' (18-32), 'VETERAN' (33+)
+    funds: 2500,
+    rank: 142,
+    statPoints: 8,
+    stats: {
+      smash: 78,
+      footwork: 74,
+      netTouch: 76,
+      stamina: 80,
+      deception: 72,
+      injuryRes: 85
+    },
+    racket: 'Yonex Astrox 88D',
+    racketBoosts: { smash: 5, netTouch: 3 },
+    wins: 28,
+    losses: 6,
+    titles: 3,
+    eventLog: [
+      '🎉 16 岁入选马来西亚国家青年队，获赠 Yonex Astrox 88D 球拍！',
+      '🏆 赢得市级青少年羽毛球公开赛男单冠军，积累 $800 奖金！',
+      '👶 0 岁出生，遗传身高门槛 178 cm，手眼协调天赋判定出色！'
+    ],
+    trophies: [
+      { title: '全国青少年锦标赛 🥇', date: '2025-11-12' },
+      { title: '吉隆坡少儿公开赛 🥇', date: '2024-06-18' }
+    ]
+  },
+  currentMatch: null,
+  hltvRankings: [
+    { rank: 1, name: '安赛龙 (Viktor Axelsen)', country: '🇩🇰 Denmark', points: 104500, titles: 28 },
+    { rank: 2, name: '石宇奇 (Shi Yuqi)', country: '🇨🇳 China', points: 98400, titles: 19 },
+    { rank: 3, name: '昆拉武特 (Kunlavut Vitidsarn)', country: '🇹🇭 Thailand', points: 91200, titles: 14 },
+    { rank: 4, name: '奈良冈功大 (Kodai Naraoka)', country: '🇯🇵 Japan', points: 86500, titles: 11 },
+    { rank: 5, name: '李梓嘉 (Lee Zii Jia)', country: '🇲🇾 Malaysia', points: 82100, titles: 12 },
+    { rank: 142, name: '李宗伟 (YOU)', country: '🇲🇾 Malaysia', points: 14200, titles: 3 }
+  ]
 };
 
 let gameState = null;
-let autoPlayInterval = null;
+let autoMatchInterval = null;
 
 /* ==========================================================================
    INIT — 游戏初始化
@@ -90,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
    ========================================================================== */
 function saveGame() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
-  showToast('游戏进度已自动保存！💾');
+  showToast('羽毛球生涯进度已成功保存！💾');
 }
 
 function loadGame() {
@@ -101,49 +94,16 @@ function loadGame() {
       migrateState();
     } catch (e) { resetToDefault(); }
   } else { resetToDefault(); }
-  if (!gameState.season.calendar.length) generateSeasonCalendar();
-  if (!gameState.currentMatch) advanceToNextMatch();
 }
 
 function resetToDefault() {
   gameState = JSON.parse(JSON.stringify(defaultGameState));
-  initPlayerStats();
-  buildHltvRankings();
-  generateSeasonCalendar();
 }
 
 function migrateState() {
-  if (!gameState.bench) gameState.bench = [];
-  if (!gameState.academy) gameState.academy = defaultGameState.academy;
-  if (!gameState.season) gameState.season = { phase: 'league', matchIndex: 0, calendar: [] };
-  if (!gameState.playerStats) { gameState.playerStats = {}; initPlayerStats(); }
-  if (!gameState.trophies) gameState.trophies = [];
-  if (gameState.matchesPlayed === undefined) gameState.matchesPlayed = 0;
-  gameState.roster.forEach(p => {
-    if (!p.perks) p.perks = [];
-    if (p.chemistry === undefined) p.chemistry = 100;
-  });
-  if (!gameState.hltvRankings || !gameState.hltvRankings.length) buildHltvRankings();
-}
-
-function initPlayerStats() {
-  gameState.roster.forEach(p => {
-    if (!gameState.playerStats[p.id]) {
-      gameState.playerStats[p.id] = { kills: 0, deaths: 0, rounds: 0, clutchWins: 0, clutchAttempts: 0 };
-    }
-  });
-}
-
-function buildHltvRankings() {
-  gameState.hltvRankings = TEAM_NAMES.map((name, i) => ({
-    rank: i + 1, name, region: TEAM_PROFILES[name].region, points: TEAM_PROFILES[name].points, winLoss: '0-0'
-  }));
-  gameState.hltvRankings.push({
-    rank: gameState.club.rank, name: gameState.club.name, region: gameState.club.region,
-    points: 340, winLoss: `${gameState.club.wins}-${gameState.club.losses}`
-  });
-  gameState.hltvRankings.sort((a, b) => b.points - a.points);
-  gameState.hltvRankings.forEach((r, i) => r.rank = i + 1);
+  if (!gameState.player) resetToDefault();
+  if (gameState.player.statPoints === undefined) gameState.player.statPoints = 8;
+  if (!gameState.player.trophies) gameState.player.trophies = [];
 }
 
 function showToast(msg) {
@@ -186,1196 +146,549 @@ function switchTab(tabId) {
 function initEvents() {
   document.getElementById('btn-save-game')?.addEventListener('click', saveGame);
 
-  // New Club Modal
-  const modal = document.getElementById('modal-new-club');
-  document.getElementById('btn-new-club')?.addEventListener('click', () => modal?.classList.remove('hidden'));
+  // 周特训按键
+  document.getElementById('btn-next-week')?.addEventListener('click', advanceWeek);
+
+  // 从0岁开启新人生 Modal
+  const modal = document.getElementById('modal-new-career');
+  document.getElementById('btn-new-career')?.addEventListener('click', () => modal?.classList.remove('hidden'));
   document.getElementById('modal-close-btn')?.addEventListener('click', () => modal?.classList.add('hidden'));
 
-  document.getElementById('form-new-club')?.addEventListener('submit', (e) => {
+  document.getElementById('form-new-career')?.addEventListener('submit', (e) => {
     e.preventDefault();
-    const name = document.getElementById('input-club-name').value.trim();
+    const name = document.getElementById('input-player-name').value.trim();
     if (!name) return;
-    gameState.club.name = name.toUpperCase();
-    gameState.club.region = document.getElementById('input-club-region').value;
-    gameState.club.coach = document.getElementById('input-coach-name').value.trim() || 'Marcus';
-    gameState.club.budget = 100000; gameState.club.wins = 0; gameState.club.losses = 0; gameState.club.rank = 18;
-    gameState.matchesPlayed = 0; gameState.bench = []; gameState.trophies = [];
-    gameState.roster.forEach(p => { p.chemistry = 100; });
-    initPlayerStats(); buildHltvRankings(); generateSeasonCalendar(); advanceToNextMatch();
+    const country = document.getElementById('input-player-country').value;
+    
+    // 重新生成 0 岁卡片
+    gameState.player = {
+      name, country,
+      ageYears: 0, ageWeeks: 0,
+      height: Math.floor(Math.random() * 12) + 175,
+      stage: 'CHILDHOOD',
+      funds: 500,
+      rank: 999,
+      statPoints: 10,
+      stats: { smash: 20, footwork: 20, netTouch: 20, stamina: 30, deception: 15, injuryRes: 90 },
+      racket: '儿童新手球拍', racketBoosts: {},
+      wins: 0, losses: 0, titles: 0,
+      eventLog: [`👶 0 岁出生于 ${country}！遗传预测身高 ${Math.floor(Math.random() * 12) + 175} cm，获得 10 初始属性点！`],
+      trophies: []
+    };
+
     saveGame(); renderAll(); modal?.classList.add('hidden');
-    showToast(`战队 [${gameState.club.name}] 正式创立！征战 Dust2 Major 赛场！`);
+    showToast(`诞生！[${name}] 开始了他的羽毛球传奇人生！`);
   });
 
-  // Tactic select
-  document.getElementById('select-tactic-style')?.addEventListener('change', (e) => {
-    gameState.tacticStyle = e.target.value; saveGame();
-    showToast(`战术调整为: ${e.target.options[e.target.selectedIndex].text}`);
-  });
-
-  // Match buttons
-  document.getElementById('dash-btn-play')?.addEventListener('click', () => switchTab('match'));
-  document.getElementById('btn-sim-round')?.addEventListener('click', simulateRound);
-  document.getElementById('btn-sim-auto')?.addEventListener('click', autoPlayMatch);
-  document.getElementById('btn-reset-match')?.addEventListener('click', () => {
-    stopAutoPlay(); advanceToNextMatch(); renderAll();
-    showToast(`Dust2 经典对决已准备就绪！`);
-  });
+  // 比赛按键
+  document.getElementById('btn-sim-point')?.addEventListener('click', simulateBadmintonPoint);
+  document.getElementById('btn-sim-match-auto')?.addEventListener('click', autoPlayMatch);
 }
 
 /* ==========================================================================
-   4. SEASON CALENDAR — 赛季日历系统
+   4. WEEK & AGE PROGRESSION — 周推进与年龄成长系统 (0-38 岁)
    ========================================================================== */
-const PHASE_CONFIG = {
-  league:          { label: '🟢 Dust2 联赛 (League)',     count: 6, format: 'BO1' },
-  qualifiers:      { label: '🟡 Major 资格赛 (Qualifiers)', count: 3, format: 'BO1' },
-  major_groups:    { label: '🔵 Major 小组赛 (Groups)',   count: 3, format: 'BO1' },
-  major_playoffs:  { label: '🏆 Major 8强淘汰赛 (Playoffs)',count: 3, format: 'BO3' },
+function advanceWeek() {
+  const p = gameState.player;
+  p.ageWeeks++;
+
+  if (p.ageWeeks >= 52) {
+    p.ageYears++;
+    p.ageWeeks = 0;
+    p.eventLog.unshift(`🎂 祝贺！你的年龄增长到了 ${p.ageYears} 岁！`);
+  }
+
+  // 判定年龄阶段
+  if (p.ageYears < 7) p.stage = 'CHILDHOOD';
+  else if (p.ageYears < 13) p.stage = 'PRIMARY';
+  else if (p.ageYears < 18) p.stage = 'JUNIOR';
+  else if (p.ageYears < 33) p.stage = 'PRO';
+  else p.stage = 'VETERAN';
+
+  // 周特训获得 TP 加点
+  p.statPoints += 3;
+  p.eventLog.unshift(`🏋️ 第 ${p.ageWeeks} 周特训完成：获得了 +3 可用属性加点 (TP)！`);
+
+  // 随机触发羽毛球生活事件
+  triggerRandomLifeEvent();
+
+  saveGame(); renderAll();
+}
+
+function triggerRandomLifeEvent() {
+  const p = gameState.player;
+  const roll = Math.random();
+
+  if (roll < 0.15) {
+    p.funds += 200;
+    p.eventLog.unshift(`💰 获得地方羽协青少年训练津贴 +$200！`);
+  } else if (roll < 0.25) {
+    p.stats.footwork = Math.min(99, p.stats.footwork + 1);
+    p.eventLog.unshift(`👟 经过一周多球步法特训，【身法步法】永久 +1！`);
+  } else if (roll < 0.35) {
+    p.stats.smash = Math.min(99, p.stats.smash + 1);
+    p.eventLog.unshift(`💥 练习中连续完成 50 次双跳重杀，【杀球爆发力】永久 +1！`);
+  }
+}
+
+/* ==========================================================================
+   5. STAT ALLOCATION CONTROLLER — 自由属性加点控制器
+   ========================================================================== */
+window.addStatPoint = function(statKey) {
+  const p = gameState.player;
+  if (p.statPoints < 1) { showToast('可用加点不足！请完成周特训积累 TP。'); return; }
+  if (p.stats[statKey] >= 99) { showToast('该属性已达天花板上限 99！'); return; }
+
+  p.stats[statKey]++;
+  p.statPoints--;
+  saveGame(); renderAll();
+  showToast(`${STAT_DEFS[statKey].name} 提升至 ${p.stats[statKey]}！`);
 };
-const PHASE_ORDER = ['league', 'qualifiers', 'major_groups', 'major_playoffs'];
 
-function generateSeasonCalendar() {
-  const cal = [];
-  const shuffled = [...TEAM_NAMES].sort(() => Math.random() - 0.5);
-  let idx = 0;
-  PHASE_ORDER.forEach(phase => {
-    const cfg = PHASE_CONFIG[phase];
-    for (let i = 0; i < cfg.count; i++) {
-      cal.push({ opponent: shuffled[idx % shuffled.length], phase, format: cfg.format, result: null, score: null });
-      idx++;
-    }
-  });
-  gameState.season = { phase: 'league', matchIndex: 0, calendar: cal };
-}
-
-function getCurrentSeasonMatch() {
-  return gameState.season.calendar[gameState.season.matchIndex] || null;
-}
-
-function advanceToNextMatch() {
-  const sm = getCurrentSeasonMatch();
-  if (!sm) { endSeason(); return; }
-  gameState.season.phase = sm.phase;
-  initNewMatch(sm.opponent, sm.format);
-}
-
-function endSeason() {
-  showToast('🏆 赛季结束！即将开始新赛季！');
-  generateSeasonCalendar();
-  advanceToNextMatch();
-}
+window.subStatPoint = function(statKey) {
+  const p = gameState.player;
+  if (p.stats[statKey] <= 15) return;
+  p.stats[statKey]--;
+  p.statPoints++;
+  saveGame(); renderAll();
+};
 
 /* ==========================================================================
-   5. MATCH ENGINE — CS 比赛模拟引擎 (固定 DE_DUST2 地图)
+   6. TOURNAMENT SYSTEM — 自由比赛报名系统
    ========================================================================== */
-function initNewMatch(oppName, format) {
-  stopAutoPlay();
-  format = format || 'BO1';
+const TOURNAMENTS = [
+  { id: 'j1', name: '🌱 社区少儿羽毛球公开赛', reqAge: 12, reqRank: 999, fee: 50, prize: 300, pts: 500, region: '本地' },
+  { id: 'j2', name: '👦 全国中学生羽毛球锦标赛', reqAge: 18, reqRank: 999, fee: 200, prize: 1500, pts: 1500, region: '全国' },
+  { id: 'b1', name: '🌍 BWF 国际挑战赛 (International Challenge)', reqAge: 16, reqRank: 500, fee: 400, prize: 3000, pts: 3500, region: '亚洲/欧洲' },
+  { id: 'b2', name: '🟢 BWF Super 300 (德国公开赛)', reqAge: 17, reqRank: 200, fee: 800, prize: 12000, pts: 7000, region: '🇩🇪 德国' },
+  { id: 'b3', name: '🟡 BWF Super 500 (韩国公开赛)', reqAge: 18, reqRank: 100, fee: 1500, prize: 25000, pts: 9200, region: '🇰🇷 韩国' },
+  { id: 'b4', name: '🔵 BWF Super 750 (日本公开赛)', reqAge: 18, reqRank: 50, fee: 3000, prize: 50000, pts: 11000, region: '🇯🇵 日本' },
+  { id: 'b5', name: '🏆 BWF Super 1000 (全英公开赛 All England)', reqAge: 18, reqRank: 32, fee: 5000, prize: 120000, pts: 12000, region: '🇬🇧 英国' },
+  { id: 'b6', name: '🥇 奥运会羽毛球男单比赛 (Olympic Games)', reqAge: 18, reqRank: 16, fee: 0, prize: 250000, pts: 15000, region: '🇫🇷 巴黎' },
+];
+
+window.enterTournament = function(tourneyId) {
+  const tourney = TOURNAMENTS.find(t => t.id === tourneyId);
+  if (!tourney) return;
+  const p = gameState.player;
+
+  if (p.funds < tourney.fee) { showToast(`资金不足！报名需要 $${tourney.fee}。`); return; }
+  if (p.ageYears > tourney.reqAge && tourney.reqAge <= 18) { showToast('超龄无法参加该少儿/中学生组比赛！'); return; }
+  if (p.rank > tourney.reqRank) { showToast(`BWF 排名不足！需要排名世界前 #${tourney.reqRank}。`); return; }
+
+  p.funds -= tourney.fee;
+
+  // 匹配对手
+  const oppNames = ['安赛龙 (Axelsen)', '石宇奇 (Shi Yuqi)', '昆拉武特', '奈良冈功大', '李梓嘉', '常山干太', '周天成'];
+  const randomOpp = oppNames[Math.floor(Math.random() * oppNames.length)];
+  const oppOvr = Math.min(96, Math.max(50, p.rank < 20 ? 92 : p.rank < 100 ? 82 : 65));
 
   gameState.currentMatch = {
-    opponent: oppName, format,
-    maps: ['DE_DUST2'],
-    bannedMaps: ['DE_INFERNO', 'DE_NUKES', 'DE_MIRAGE'],
-    currentMapIndex: 0,
-    seriesScoreMy: 0, seriesScoreOpp: 0,
-    roundNum: 1, scoreMy: 0, scoreOpp: 0,
-    mySide: 'CT', oppSide: 'T',
-    myMoney: 800, oppMoney: 800,
-    myBuyType: 'PISTOL ($800)', oppBuyType: 'PISTOL ($800)',
-    myLossStreak: 0, oppLossStreak: 0,
-    killFeed: [], isFinished: false, isMapFinished: false
+    tourney,
+    oppName: randomOpp,
+    oppOvr,
+    myScore: 0, oppScore: 0,
+    mySets: 0, oppSets: 0,
+    currentSet: 1,
+    killLog: [],
+    isFinished: false
   };
+
+  saveGame(); renderAll(); switchTab('court');
+  initBadmintonCanvas();
+  showToast(`成功报名 [${tourney.name}]！前往球场迎战 ${randomOpp}！`);
+};
+
+/* ==========================================================================
+   7. 2D COURT ENGINE — 2D BWF 球场物理与实时观战引擎
+   ========================================================================== */
+let courtCanvas = null;
+let courtCtx = null;
+let courtAnimationId = null;
+
+let courtEntities = {
+  myPlayer: { x: 400, y: 350, targetX: 400, targetY: 350, color: '#10b981' },
+  oppPlayer: { x: 400, y: 100, targetX: 400, targetY: 100, color: '#f43f5e' },
+  shuttle: { x: 400, y: 225, z: 0, vx: 0, vy: 0, vz: 0, state: 'IDLE' },
+  smashSpeed: 0,
+  hawkEye: { active: false, result: 'IN' }
+};
+
+function initBadmintonCanvas() {
+  courtCanvas = document.getElementById('badminton-canvas');
+  if (!courtCanvas) return;
+  courtCtx = courtCanvas.getContext('2d');
+  if (!courtAnimationId) {
+    requestAnimationFrame(courtLoop);
+  }
 }
 
-function getEffectiveStat(player, stat) {
-  let val = player[stat] || 0;
-  (player.perks || []).forEach(perkName => {
-    const def = PERK_DEFS[perkName];
-    if (def && def.stat === stat) val += def.boost;
-  });
-  const chem = player.chemistry !== undefined ? player.chemistry : 100;
-  if (chem < 70) val = Math.round(val * 0.9);
-  else if (chem >= 90) val += 3;
-  return Math.min(99, val);
-}
-
-function getOppProfile(oppName) {
-  return TEAM_PROFILES[oppName] || { style: 'balanced', avgAim: 85, avgSense: 85, avgClutch: 85, star: 'Unknown', region: '🌍' };
-}
-
-function simulateRound() {
+function simulateBadmintonPoint() {
   const m = gameState.currentMatch;
-  if (!m || m.isFinished) { stopAutoPlay(); showToast('比赛已结束！'); return; }
+  if (!m || m.isFinished) { stopAutoMatch(); showToast('本场比赛已结束！'); return; }
 
-  const opp = getOppProfile(m.opponent);
+  const p = gameState.player;
+  const myOvr = Math.round((p.stats.smash + p.stats.footwork + p.stats.netTouch + p.stats.stamina) / 4);
 
-  // Halftime swap at round 13
-  if (m.roundNum === 13) {
-    [m.mySide, m.oppSide] = [m.oppSide, m.mySide];
-    m.myMoney = 800; m.oppMoney = 800;
-    m.myLossStreak = 0; m.oppLossStreak = 0;
-    m.myBuyType = 'PISTOL ($800)'; m.oppBuyType = 'PISTOL ($800)';
-    m.killFeed.unshift(`🔄 --- 半场换边！我方现为 ${m.mySide} ---`);
-  } else if (m.roundNum === 1) {
-    m.myBuyType = 'PISTOL ($800)'; m.oppBuyType = 'PISTOL ($800)';
-  } else {
-    m.myBuyType = m.myMoney >= 4200 ? 'FULL BUY (AK/AWP + 护甲)' : (m.myMoney >= 2200 ? 'FORCE BUY (Galil/Famas)' : 'ECO SAVE');
-    m.oppBuyType = m.oppMoney >= 4200 ? 'FULL BUY (AK/AWP + 护甲)' : (m.oppMoney >= 2200 ? 'FORCE BUY (Galil/Famas)' : 'ECO SAVE');
-  }
+  // 算力胜率判定
+  const winProb = Math.max(0.15, Math.min(0.85, (myOvr + (p.racketBoosts.smash || 0)) / (myOvr + m.oppOvr)));
+  const myWonPoint = Math.random() < winProb;
 
-  const avgAim = gameState.roster.reduce((s, p) => s + getEffectiveStat(p, 'aim'), 0) / 5;
-  const avgClutch = gameState.roster.reduce((s, p) => s + getEffectiveStat(p, 'clutch'), 0) / 5;
-  const avgChem = gameState.roster.reduce((s, p) => s + (p.chemistry || 100), 0) / 5;
+  // 动作类型：高远球 Clear, 重杀 Smash, 吊球 Drop
+  const shotTypes = ['SMASH', 'CLEAR', 'DROP', 'NET'];
+  const shot = shotTypes[Math.floor(Math.random() * shotTypes.length)];
 
-  let myPower = avgAim * 0.45 + avgClutch * 0.25 + (m.myMoney / 16000) * 20 + (avgChem / 100) * 10;
-  let oppPower = opp.avgAim * 0.45 + opp.avgClutch * 0.25 + (m.oppMoney / 16000) * 20 + 9;
-
-  const tactics = { aggressive: 5, defensive: 3, balanced: 0, forcebuy: 2 };
-  myPower += tactics[gameState.tacticStyle] || 0;
-
-  if (opp.style === 'awp_heavy') oppPower += 3;
-  if (opp.style === 'defensive') oppPower += 2;
-  if (opp.style === 'aggressive') oppPower += 4;
-
-  const winProb = Math.max(0.15, Math.min(0.85, myPower / (myPower + oppPower)));
-  const myWon = Math.random() < winProb;
-
-  const hero = gameState.roster[Math.floor(Math.random() * 5)];
-  const weapons = ['AK-47', 'M4A4', 'AWP', 'Desert Eagle', 'USP-S', 'Galil AR', 'MP9'];
-  const weapon = weapons[Math.floor(Math.random() * weapons.length)];
-  const logs = [];
-  logs.push(`--- 回合 ${m.roundNum} [de_dust2] (${m.mySide} vs ${m.oppSide}) ---`);
-
-  const heroStats = gameState.playerStats[hero.id] || { kills: 0, deaths: 0, rounds: 0, clutchWins: 0, clutchAttempts: 0 };
-  heroStats.rounds++;
-
-  if (myWon) {
-    m.scoreMy++; m.oppLossStreak++; m.myLossStreak = 0;
-    m.myMoney = Math.min(16000, m.myMoney + 3250);
-    m.oppMoney = Math.min(16000, m.oppMoney + 1400 + Math.min(m.oppLossStreak * 500, 2000));
-
-    const isClutch = Math.random() < 0.2;
-    const kills = Math.floor(Math.random() * 3) + 1;
-    heroStats.kills += kills;
-
-    if (isClutch) {
-      heroStats.clutchAttempts++; heroStats.clutchWins++;
-      logs.push(`💥 [Dust2 残局] ${hero.name} B 包点冷静思考，${weapon} 1v2 守包成功！`);
-    } else if (Math.random() < 0.3) {
-      logs.push(`💣 [C4 安放] ${hero.name} 精准封 A 门大门烟雾，顺利安放 C4 爆破！`);
-    } else {
-      logs.push(`🎯 [A 门首杀] ${hero.name} 使用 ${weapon} 爆头架死 ${opp.star}！`);
-    }
-  } else {
-    m.scoreOpp++; m.myLossStreak++; m.oppLossStreak = 0;
-    m.oppMoney = Math.min(16000, m.oppMoney + 3250);
-    m.myMoney = Math.min(16000, m.myMoney + 1400 + Math.min(m.myLossStreak * 500, 2000));
-
-    heroStats.deaths++;
-    if (Math.random() < 0.2) { heroStats.clutchAttempts++; }
-
-    if (Math.random() < 0.3) {
-      logs.push(`⚠️ ${opp.star} 在 Dust2 中门架狙完成首杀，对手控制中路。`);
-    } else if (Math.random() < 0.3) {
-      logs.push(`🛡️ [拆弹成功] 对手在 A 小回防封烟拆除 C4，我方惜败。`);
-    } else {
-      logs.push(`❌ 对手 B 洞 Rush 火力过于猛烈，我方防线告破。`);
+  if (shot === 'SMASH' && myWonPoint) {
+    const speed = Math.floor(Math.random() * 40) + 380; // 380 - 420 km/h 杀球!
+    courtEntities.smashSpeed = speed;
+    const banner = document.getElementById('smash-speed-banner');
+    if (banner) {
+      banner.textContent = `⚡ MONSTER SMASH! ${speed} km/h!`;
+      banner.classList.remove('hidden');
+      setTimeout(() => banner.classList.add('hidden'), 1800);
     }
   }
 
-  gameState.playerStats[hero.id] = heroStats;
-  m.killFeed.unshift(...logs.reverse());
-  m.roundNum++;
+  // 鹰眼挑战概率触发 (5% 压线分)
+  if (Math.random() < 0.08) {
+    const hawkeyeResult = Math.random() < 0.6 ? 'IN! (界内压线 1.8mm)' : 'OUT! (界外出界 3.2mm)';
+    const hawkeyeBanner = document.getElementById('hawkeye-banner');
+    const hawkeyeText = document.getElementById('hawkeye-result-text');
+    if (hawkeyeBanner && hawkeyeText) {
+      hawkeyeText.textContent = hawkeyeResult;
+      hawkeyeBanner.classList.remove('hidden');
+      setTimeout(() => hawkeyeBanner.classList.add('hidden'), 2200);
+    }
+  }
 
-  if (m.scoreMy >= 13 || m.scoreOpp >= 13) {
-    finishMap();
+  if (myWonPoint) {
+    m.myScore++;
+    m.killLog.unshift(`💥 [得分] ${p.name} 凭借精准 ${shot === 'SMASH' ? '双跳重杀' : '网前搓球'} 得分！`);
+  } else {
+    m.oppScore++;
+    m.killLog.unshift(`⚠️ 对手 ${m.oppName} 底线突击直线杀球得分。`);
+  }
+
+  // 21 分制与 Deuce 判定 (先达 21 分且净胜 2 分)
+  if ((m.myScore >= 21 || m.oppScore >= 21) && Math.abs(m.myScore - m.oppScore) >= 2) {
+    if (m.myScore > m.oppScore) m.mySets++;
+    else m.oppSets++;
+
+    m.myScore = 0; m.oppScore = 0;
+    m.currentSet++;
+
+    if (m.mySets >= 2 || m.oppSets >= 2) {
+      m.isFinished = true;
+      stopAutoMatch();
+      finishBadmintonMatch();
+    }
   }
 
   renderMatchUI();
 }
 
-function finishMap() {
-  const m = gameState.currentMatch;
-  const mapWon = m.scoreMy > m.scoreOpp;
-  const mapScore = `${m.scoreMy}:${m.scoreOpp}`;
-
-  if (mapWon) m.seriesScoreMy++;
-  else m.seriesScoreOpp++;
-
-  m.killFeed.unshift(`🗺️ === DE_DUST2 结束！比分 ${mapScore} ${mapWon ? '✅ 我方胜利' : '❌ 对手胜利'} (系列赛 ${m.seriesScoreMy}-${m.seriesScoreOpp}) ===`);
-
-  const winsNeeded = m.format === 'BO3' ? 2 : 1;
-
-  if (m.seriesScoreMy >= winsNeeded || m.seriesScoreOpp >= winsNeeded) {
-    m.isFinished = true; m.isMapFinished = true;
-    stopAutoPlay();
-    finishMatch();
-  } else {
-    m.currentMapIndex = 0;
-    m.roundNum = 1; m.scoreMy = 0; m.scoreOpp = 0;
-    m.mySide = 'CT'; m.oppSide = 'T';
-    m.myMoney = 800; m.oppMoney = 800;
-    m.myLossStreak = 0; m.oppLossStreak = 0;
-    m.myBuyType = 'PISTOL ($800)'; m.oppBuyType = 'PISTOL ($800)';
-    m.isMapFinished = false;
-    m.killFeed.unshift(`🗺️ --- 即将开始下一局 de_dust2 ---`);
-  }
+function autoPlayMatch() {
+  if (!gameState.currentMatch || gameState.currentMatch.isFinished) return;
+  if (autoMatchInterval) { stopAutoMatch(); return; }
+  const btn = document.getElementById('btn-sim-match-auto');
+  if (btn) btn.textContent = '⏸ 暂停自动模拟';
+  autoMatchInterval = setInterval(() => {
+    if (gameState.currentMatch.isFinished) stopAutoMatch();
+    else simulateBadmintonPoint();
+  }, 160);
 }
 
-function finishMatch() {
+function stopAutoMatch() {
+  if (autoMatchInterval) { clearInterval(autoMatchInterval); autoMatchInterval = null; }
+  const btn = document.getElementById('btn-sim-match-auto');
+  if (btn) btn.textContent = '⚡ 自动模拟整场比赛 (AUTO MATCH)';
+}
+
+function finishBadmintonMatch() {
   const m = gameState.currentMatch;
-  const won = m.format === 'BO3' ? m.seriesScoreMy > m.seriesScoreOpp : m.scoreMy > m.scoreOpp;
-
-  const sm = getCurrentSeasonMatch();
-  if (sm) {
-    sm.result = won ? 'WIN' : 'LOSS';
-    sm.score = m.format === 'BO3' ? `${m.seriesScoreMy}-${m.seriesScoreOpp}` : `${m.scoreMy}:${m.scoreOpp}`;
-  }
-
-  gameState.matchesPlayed++;
-  gameState.roster.forEach(p => { p.chemistry = Math.min(100, (p.chemistry || 100) + 5); });
+  const won = m.mySets > m.oppSets;
+  const p = gameState.player;
 
   if (won) {
-    gameState.club.wins++;
-    const prize = gameState.season.phase === 'major_playoffs' ? 50000 : 25000;
-    gameState.club.budget += prize;
-    if (gameState.club.rank > 1) gameState.club.rank--;
-
-    if (gameState.season.phase === 'major_playoffs' && gameState.season.matchIndex >= gameState.season.calendar.length - 1) {
-      let mvpId = null, mvpKills = 0;
-      Object.entries(gameState.playerStats).forEach(([id, st]) => {
-        if (st.kills > mvpKills) { mvpKills = st.kills; mvpId = id; }
-      });
-      const mvpPlayer = gameState.roster.find(p => p.id === mvpId);
-      gameState.trophies.push({
-        title: `Dust2 Major Champion S${gameState.trophies.length + 1}`,
-        date: new Date().toLocaleDateString(), mvpPlayer: mvpPlayer ? mvpPlayer.name : 'N/A'
-      });
-      showToast(`🏆🏆🏆 恭喜荣获 DUST2 MAJOR 冠军！MVP: ${mvpPlayer ? mvpPlayer.name : 'N/A'}！奖金 $${prize.toLocaleString()}！`);
-    } else {
-      showToast(`🏆 Dust2 胜利！奖金 $${prize.toLocaleString()}，排名升至 #${gameState.club.rank}！`);
-    }
+    p.wins++;
+    p.funds += m.tourney.prize;
+    p.rank = Math.max(1, p.rank - Math.floor(Math.random() * 15 + 5));
+    p.titles++;
+    p.trophies.push({ title: `${m.tourney.name} 🥇`, date: new Date().toLocaleDateString() });
+    p.eventLog.unshift(`🏆 夺冠！赢得 [${m.tourney.name}] 冠军！奖金 $${m.tourney.prize.toLocaleString()}，BWF 排名升至 #${p.rank}！`);
+    showToast(`🏆 冠军！获得奖金 $${m.tourney.prize.toLocaleString()}，排名升至 #${p.rank}！`);
   } else {
-    gameState.club.losses++;
-    gameState.club.budget += 8000;
-    if (gameState.club.rank < 30) gameState.club.rank++;
-    showToast(`💔 失利，参与奖 $8,000。继续调整战术！`);
+    p.losses++;
+    p.funds += Math.round(m.tourney.prize * 0.2);
+    p.eventLog.unshift(`💔 在 [${m.tourney.name}] 中惜败于 ${m.oppName}，获得参与奖 $${Math.round(m.tourney.prize * 0.2)}。`);
+    showToast(`💔 惜败，获得参与奖金。继续训练提升能力！`);
   }
 
-  const userEntry = gameState.hltvRankings.find(r => r.name === gameState.club.name);
-  if (userEntry) {
-    userEntry.winLoss = `${gameState.club.wins}-${gameState.club.losses}`;
-    userEntry.rank = gameState.club.rank;
-  }
-
-  gameState.season.matchIndex++;
   saveGame(); renderAll();
 }
 
-function autoPlayMatch() {
-  if (!gameState.currentMatch || gameState.currentMatch.isFinished) return;
-  if (autoPlayInterval) { stopAutoPlay(); return; }
-  const btn = document.getElementById('btn-sim-auto');
-  if (btn) btn.textContent = '⏸ 暂停自动模拟';
-  autoPlayInterval = setInterval(() => {
-    if (gameState.currentMatch.isFinished) stopAutoPlay();
-    else simulateRound();
-  }, 150);
+function courtLoop() {
+  if (courtCtx && courtCanvas) {
+    drawBwfCourtScene();
+  }
+  requestAnimationFrame(courtLoop);
 }
 
-function stopAutoPlay() {
-  if (autoPlayInterval) { clearInterval(autoPlayInterval); autoPlayInterval = null; }
-  const btn = document.getElementById('btn-sim-auto');
-  if (btn) btn.textContent = '⚡ 自动模拟 (AUTO PLAY)';
+function drawBwfCourtScene() {
+  const w = courtCanvas.width;
+  const h = courtCanvas.height;
+
+  // 1. BWF 标志性绿地胶背景
+  courtCtx.fillStyle = '#047857';
+  courtCtx.fillRect(0, 0, w, h);
+
+  // 2. 绘制标准羽毛球单打/双打白边线
+  courtCtx.strokeStyle = '#ffffff';
+  courtCtx.lineWidth = 3;
+
+  const cx = 180, cy = 40, cw = 440, ch = 370;
+  courtCtx.strokeRect(cx, cy, cw, ch);
+
+  // 双打边线与发球线
+  courtCtx.lineWidth = 1.5;
+  courtCtx.strokeRect(cx + 25, cy, cw - 50, ch); // 单打边线
+
+  // 中线与前发球线
+  const midY = cy + ch / 2;
+  courtCtx.beginPath();
+  courtCtx.moveTo(cx + cw / 2, cy); courtCtx.lineTo(cx + cw / 2, cy + ch); // 中线
+  courtCtx.moveTo(cx, midY - 45); courtCtx.lineTo(cx + cw, midY - 45); // 前发球线 (上)
+  courtCtx.moveTo(cx, midY + 45); courtCtx.lineTo(cx + cw, midY + 45); // 前发球线 (下)
+  courtCtx.stroke();
+
+  // 3. 绘制中间网 (Net)
+  courtCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+  courtCtx.lineWidth = 4;
+  courtCtx.beginPath();
+  courtCtx.moveTo(cx - 15, midY); courtCtx.lineTo(cx + cw + 15, midY);
+  courtCtx.stroke();
+
+  // 网柱 Net Posts
+  courtCtx.fillStyle = '#f59e0b';
+  courtCtx.fillRect(cx - 18, midY - 6, 8, 12);
+  courtCtx.fillRect(cx + cw + 10, midY - 6, 8, 12);
+
+  // 4. 绘制球员圆点 (近场我方 🟢，远场对手 🔴)
+  const my = courtEntities.myPlayer;
+  const opp = courtEntities.oppPlayer;
+
+  // 近场我方圆点
+  courtCtx.beginPath();
+  courtCtx.arc(my.x, my.y, 10, 0, Math.PI * 2);
+  courtCtx.fillStyle = '#10b981';
+  courtCtx.shadowColor = '#10b981'; courtCtx.shadowBlur = 12;
+  courtCtx.fill(); courtCtx.shadowBlur = 0;
+  courtCtx.lineWidth = 2; courtCtx.strokeStyle = '#ffffff'; courtCtx.stroke();
+
+  // 远场对手圆点
+  courtCtx.beginPath();
+  courtCtx.arc(opp.x, opp.y, 10, 0, Math.PI * 2);
+  courtCtx.fillStyle = '#f43f5e';
+  courtCtx.shadowColor = '#f43f5e'; courtCtx.shadowBlur = 12;
+  courtCtx.fill(); courtCtx.shadowBlur = 0;
+  courtCtx.lineWidth = 2; courtCtx.strokeStyle = '#ffffff'; courtCtx.stroke();
+
+  // 5. 绘制羽毛球白点
+  courtCtx.beginPath();
+  courtCtx.arc(w / 2, h / 2, 5, 0, Math.PI * 2);
+  courtCtx.fillStyle = '#fef08a';
+  courtCtx.shadowColor = '#fef08a'; courtCtx.shadowBlur = 8;
+  courtCtx.fill(); courtCtx.shadowBlur = 0;
+
+  // 水印标题
+  courtCtx.fillStyle = 'rgba(255,255,255,0.4)';
+  courtCtx.font = 'bold 12px monospace';
+  courtCtx.textAlign = 'left';
+  courtCtx.fillText('BWF OFFICIAL 2D COURT OBSERVER', 20, 25);
 }
 
 /* ==========================================================================
-   6. TRANSFER & BENCH — 转会与替补席
+   8. EQUIPMENT SHOP — 球拍装备系统
    ========================================================================== */
-window.buyPlayer = function(playerId) {
-  const src = gameState.market.find(m => m.id === playerId) || gameState.academy.find(a => a.id === playerId);
-  if (!src) return;
-  if (gameState.club.budget < src.value) { showToast('资金不足！'); return; }
+const RACKETS = [
+  { name: 'Yonex Astrox 100ZZ', price: 1200, boost: '杀球爆发 +8 | 步法 +3', boosts: { smash: 8, footwork: 3 }, desc: '全攻击型重杀神器，安赛龙同款！' },
+  { name: 'Victor Thruster RYUGA', price: 1500, boost: '杀球爆发 +10 | 体能 +4', boosts: { smash: 10, stamina: 4 }, desc: '龙牙之刃，极端杀球爆发！' },
+  { name: 'Li-Ning N72-II Light', price: 1000, boost: '网前手感 +8 | 身法 +4', boosts: { netTouch: 8, footwork: 4 }, desc: '轻巧控球，网前搓球与对角神器！' }
+];
 
-  gameState.club.budget -= src.value;
-  let replaceIdx = gameState.roster.findIndex(r => r.role === src.role);
-  if (replaceIdx === -1) {
-    replaceIdx = 0;
-    for (let i = 1; i < gameState.roster.length; i++) {
-      if (gameState.roster[i].aim < gameState.roster[replaceIdx].aim) replaceIdx = i;
-    }
-  }
-  const replaced = gameState.roster[replaceIdx];
-  replaced.morale = Math.max(60, replaced.morale - 15);
-  gameState.bench.push(replaced);
+window.buyRacket = function(racketIndex) {
+  const r = RACKETS[racketIndex];
+  if (!r) return;
+  const p = gameState.player;
 
-  src.chemistry = 50;
-  gameState.roster[replaceIdx] = src;
+  if (p.funds < r.price) { showToast(`资金不足！购买需要 $${r.price}。`); return; }
 
-  if (!gameState.playerStats[src.id]) {
-    gameState.playerStats[src.id] = { kills: 0, deaths: 0, rounds: 0, clutchWins: 0, clutchAttempts: 0 };
-  }
-
-  gameState.market = gameState.market.filter(m => m.id !== playerId);
-  gameState.academy = gameState.academy.filter(a => a.id !== playerId);
+  p.funds -= r.price;
+  p.racket = r.name;
+  p.racketBoosts = r.boosts;
   saveGame(); renderAll();
-  showToast(`🎉 签约 [${src.name}]！替代 [${replaced.name}]，新选手需要磨合期。`);
+  showToast(`🎉 签约装备！换上了 [${r.name}]！`);
 };
 
 /* ==========================================================================
-   7. RENDER ENGINE — UI 渲染引擎
+   9. RENDER ENGINE — UI 渲染引擎
    ========================================================================== */
 function renderAll() {
-  renderHeader(); renderDashboard(); renderRoster(); renderBench();
-  renderTransfers(); renderAcademy(); renderMatchUI(); renderBracket();
-  renderStats(); renderTrophyCabinet(); renderRankings();
+  renderHeader(); renderDashboard(); renderStats(); renderTournaments();
+  renderMatchUI(); renderShop(); renderRankings();
 }
 
 function el(id) { return document.getElementById(id); }
 function setEl(id, txt) { const e = el(id); if (e) e.textContent = txt; }
 
 function renderHeader() {
-  const c = gameState.club;
-  setEl('header-club-name', c.name);
-  setEl('header-budget', `$${c.budget.toLocaleString()}`);
-  setEl('header-rank', `#${c.rank} WORLD`);
+  const p = gameState.player;
+  setEl('header-player-name', `${p.name}`);
+  setEl('header-age-badge', `${p.ageYears} 岁 (${p.stage})`);
+  setEl('header-funds', `$${p.funds.toLocaleString()}`);
+  setEl('header-tp', `${p.statPoints} TP`);
+  setEl('header-rank', `#${p.rank} WORLD`);
 }
 
 function renderDashboard() {
-  const c = gameState.club;
-  const sm = getCurrentSeasonMatch();
-  setEl('dash-next-opp', sm ? sm.opponent : '赛季结束');
-  setEl('dash-avg-aim', (gameState.roster.reduce((s, p) => s + getEffectiveStat(p, 'aim'), 0) / 5).toFixed(1));
-  setEl('dash-avg-morale', Math.round(gameState.roster.reduce((s, p) => s + p.morale, 0) / 5) + '%');
+  const p = gameState.player;
+  setEl('dash-week-num', p.ageWeeks);
+  setEl('dash-age-display', `${p.ageYears} 岁 ${p.ageWeeks} 周`);
 
-  const totalSalary = gameState.roster.reduce((s, p) => s + p.salary, 0) + (gameState.bench || []).reduce((s, p) => s + p.salary, 0);
-  setEl('dash-monthly-salary', `$${totalSalary.toLocaleString()}`);
+  const ovr = Math.round((p.stats.smash + p.stats.footwork + p.stats.netTouch + p.stats.stamina) / 4);
+  setEl('dash-ovr-display', `${ovr} OVR`);
+  setEl('dash-racket-display', p.racket);
+  setEl('dash-record-display', `${p.wins} 胜 - ${p.losses} 负`);
 
-  const phaseLabel = sm ? PHASE_CONFIG[sm.phase]?.label || sm.phase : '赛季结束';
-  setEl('header-season', `${phaseLabel} | 比赛 ${gameState.season.matchIndex + 1}/${gameState.season.calendar.length}`);
-
-  const list = el('dash-roster-list');
-  if (list) {
-    list.innerHTML = gameState.roster.map(p => {
-      const perkBadges = (p.perks || []).map(pk => {
-        const d = PERK_DEFS[pk]; return d ? `<span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-400 font-bold">${d.icon} ${pk}</span>` : '';
-      }).join(' ');
-      const chemColor = p.chemistry >= 90 ? 'text-emerald-400' : p.chemistry >= 70 ? 'text-amber-400' : 'text-rose-400';
-      return `<div class="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between font-mono text-xs">
-        <div class="flex items-center gap-2">
-          <span class="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-bold">${p.role}</span>
-          <span class="font-bold text-white">${p.name}</span>${perkBadges}
-        </div>
-        <div class="flex items-center gap-3 text-slate-400">
-          <span>Aim:<strong class="text-emerald-400">${getEffectiveStat(p, 'aim')}</strong></span>
-          <span>Clutch:<strong class="text-cyan-400">${getEffectiveStat(p, 'clutch')}</strong></span>
-          <span class="${chemColor}">默契:${p.chemistry}%</span>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  const news = el('dash-news-list');
-  if (news) {
-    const latestResults = gameState.season.calendar.filter(m => m.result).slice(-3).reverse();
-    let newsHtml = `<div class="p-3 rounded-lg bg-slate-950 border border-slate-800 text-slate-300">
-      🔥 <strong class="text-amber-400">[HLTV Dust2]</strong> <strong>${c.name}</strong> ${phaseLabel} | 排名 #${c.rank}
-    </div>`;
-    latestResults.forEach(r => {
-      const isWin = r.result === 'WIN';
-      newsHtml += `<div class="p-3 rounded-lg bg-slate-950 border ${isWin ? 'border-emerald-500/30' : 'border-rose-500/30'} text-slate-300">
-        ${isWin ? '✅' : '❌'} vs <strong>${r.opponent}</strong> ${r.score} (de_dust2)
-      </div>`;
-    });
-    news.innerHTML = newsHtml;
-  }
-}
-
-// 渲染阵容（纯展示，取消手动加点按键）
-function renderRoster() {
-  const cards = el('roster-training-cards');
-  if (!cards) return;
-
-  cards.innerHTML = gameState.roster.map(p => {
-    const perkBadges = (p.perks || []).map(pk => {
-      const d = PERK_DEFS[pk]; return d ? `<div class="px-2 py-1 rounded bg-amber-500/20 border border-amber-500/40 text-amber-400 text-[10px] font-bold flex items-center gap-1">${d.icon} ${pk}</div>` : '';
-    }).join('');
-
-    const chemColor = p.chemistry >= 90 ? 'text-emerald-400' : p.chemistry >= 70 ? 'text-amber-400' : 'text-rose-400';
-
-    return `<div class="rounded-xl bg-cs-card border border-slate-800 p-4 space-y-3 font-mono text-xs shadow-xl hover:border-amber-500/50 transition-all">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-        <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold text-[10px]">${p.role}</span>
-        <span class="${chemColor} text-[10px] font-bold">默契 ${p.chemistry}%</span>
-      </div>
-      <div class="text-lg font-extrabold text-white">${p.name}</div>
-      <div class="flex flex-wrap gap-1">${perkBadges || '<span class="text-slate-500 text-[10px]">通用选手</span>'}</div>
-      <div class="space-y-2 text-[11px] pt-1 border-t border-slate-800/80">
-        <div class="flex justify-between"><span>Aim 枪法:</span><strong class="text-emerald-400 font-bold text-sm">${p.aim}</strong></div>
-        <div class="flex justify-between"><span>Sense 意识:</span><strong class="text-cyan-400 font-bold text-sm">${p.sense}</strong></div>
-        <div class="flex justify-between"><span>Clutch 残局:</span><strong class="text-amber-400 font-bold text-sm">${p.clutch}</strong></div>
-        <div class="flex justify-between"><span>Speed 身法:</span><strong class="text-purple-400 font-bold text-sm">${p.movement}</strong></div>
-        <div class="flex justify-between"><span>Morale 士气:</span><strong class="text-white font-bold">${p.morale}%</strong></div>
-      </div>
-      <div class="pt-2 border-t border-slate-800 text-[10px] text-slate-400 flex items-center justify-between">
-        <span>月薪: $${p.salary}</span>
-        <span class="text-emerald-400 font-bold">首发</span>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function renderBench() {
-  const benchList = el('bench-list');
-  if (!benchList) return;
-  if (!gameState.bench.length) {
-    benchList.innerHTML = '<div class="text-slate-500 text-xs font-mono italic">替补席暂无选手。</div>';
-  } else {
-    benchList.innerHTML = gameState.bench.map(p => `
-      <div class="p-3 rounded-lg bg-slate-950 border border-rose-500/30 flex items-center justify-between font-mono text-xs">
-        <div class="flex items-center gap-3">
-          <span class="px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[10px] font-bold">BENCH</span>
-          <span class="font-bold text-white">${p.name}</span>
-          <span class="text-slate-500 text-[10px]">(${p.role})</span>
-        </div>
-        <div class="flex items-center gap-4 text-slate-400">
-          <span>Aim:<strong class="text-emerald-400">${p.aim}</strong></span>
-          <span>士气:<strong class="text-amber-400">${p.morale}%</strong></span>
-        </div>
+  // 属性快照
+  const snapshot = el('dash-stats-snapshot');
+  if (snapshot) {
+    snapshot.innerHTML = Object.entries(STAT_DEFS).map(([key, def]) => `
+      <div class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800">
+        <span class="text-slate-300 font-bold">${def.icon} ${def.name.split(' ')[1]}</span>
+        <strong class="${def.color}">${p.stats[key]}</strong>
       </div>`).join('');
   }
-}
 
-function renderTransfers() {
-  setEl('market-budget-display', `$${gameState.club.budget.toLocaleString()}`);
-  const grid = el('market-players-grid');
-  if (!grid) return;
-  grid.innerHTML = gameState.market.map(p => `
-    <div class="rounded-xl bg-cs-card border border-slate-800 p-5 space-y-4 font-mono text-xs shadow-xl hover:border-emerald-500/40 transition-all">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-        <span class="px-2.5 py-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-bold text-[10px]">${p.role}</span>
-        <span class="text-emerald-400 font-bold text-sm">$${p.value.toLocaleString()}</span>
-      </div>
-      <div><div class="text-lg font-extrabold text-white">${p.name}</div><div class="text-slate-400 text-[11px]">月薪: $${p.salary}/月</div></div>
-      <div class="grid grid-cols-2 gap-2 text-[11px] bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-        <div>Aim: <strong class="text-emerald-400">${p.aim}</strong></div><div>Sense: <strong class="text-cyan-400">${p.sense}</strong></div>
-        <div>Clutch: <strong class="text-amber-400">${p.clutch}</strong></div><div>Speed: <strong class="text-purple-400">${p.movement}</strong></div>
-      </div>
-      <div class="text-[10px] text-rose-400">⚠️ 签约后默契值从 50% 开始磨合</div>
-      <button onclick="buyPlayer('${p.id}')" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-lg shadow-emerald-500/20 transition-all">💰 签约 ($${p.value.toLocaleString()})</button>
-    </div>`).join('');
-}
-
-function renderAcademy() {
-  const grid = el('academy-players-grid');
-  if (!grid) return;
-  if (!gameState.academy.length) {
-    grid.innerHTML = '<div class="text-slate-500 text-xs font-mono italic col-span-3">青训营暂无可选新人。</div>';
-    return;
+  // 日志
+  const eventLog = el('dash-event-log');
+  if (eventLog) {
+    eventLog.innerHTML = p.eventLog.map(log => `
+      <div class="p-2 rounded bg-slate-950 border border-slate-800/60 text-slate-300">${log}</div>
+    `).join('');
   }
-  grid.innerHTML = gameState.academy.map(p => `
-    <div class="rounded-xl bg-cs-card border border-emerald-500/20 p-5 space-y-4 font-mono text-xs shadow-xl hover:border-emerald-500/40 transition-all">
+}
+
+function renderStats() {
+  const p = gameState.player;
+  setEl('stat-tp-display', `${p.statPoints} TP`);
+  const grid = el('stat-allocation-cards');
+  if (!grid) return;
+
+  grid.innerHTML = Object.entries(STAT_DEFS).map(([key, def]) => `
+    <div class="rounded-xl bg-bwf-card border border-slate-800 p-5 space-y-4 font-mono text-xs shadow-xl hover:border-emerald-500/40 transition-all">
       <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-        <span class="px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold text-[10px]">🌱 ${p.role}</span>
-        <span class="text-emerald-400 font-bold text-sm">$${p.value.toLocaleString()}</span>
+        <span class="font-bold text-white text-sm">${def.name}</span>
+        <strong class="text-lg font-black ${def.color}">${p.stats[key]}</strong>
       </div>
-      <div><div class="text-lg font-extrabold text-white">${p.name}</div><div class="text-emerald-400 text-[11px]">青训新秀 · 月薪仅 $${p.salary}/月</div></div>
-      <div class="grid grid-cols-2 gap-2 text-[11px] bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-        <div>Aim: <strong class="text-emerald-400">${p.aim}</strong></div><div>Sense: <strong class="text-cyan-400">${p.sense}</strong></div>
-        <div>Clutch: <strong class="text-amber-400">${p.clutch}</strong></div><div>Morale: <strong class="text-white">${p.morale}%</strong></div>
+      <p class="text-slate-400 text-[11px] h-8">${def.desc}</p>
+
+      <div class="w-full h-2 rounded-full bg-slate-950 border border-slate-800 overflow-hidden">
+        <div class="h-full bg-gradient-to-r from-emerald-500 to-amber-400 stat-bar-fill" style="width: ${p.stats[key]}%"></div>
       </div>
-      <button onclick="buyPlayer('${p.id}')" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-lg shadow-emerald-500/20 transition-all">🌱 签约青训新人 ($${p.value.toLocaleString()})</button>
+
+      <div class="flex items-center gap-2 pt-2">
+        <button onclick="addStatPoint('${key}')" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-lg shadow-emerald-500/20 transition-all">
+          + 加 1 点 (消耗 1 TP)
+        </button>
+      </div>
     </div>`).join('');
+}
+
+function renderTournaments() {
+  setEl('tourney-funds-display', `$${gameState.player.funds.toLocaleString()}`);
+  setEl('tourney-rank-display', `#${gameState.player.rank}`);
+  const grid = el('tournaments-grid');
+  if (!grid) return;
+
+  grid.innerHTML = TOURNAMENTS.map(t => {
+    const isAgeOk = gameState.player.ageYears <= t.reqAge || t.reqAge > 18;
+    const isRankOk = gameState.player.rank <= t.reqRank;
+    const isFundsOk = gameState.player.funds >= t.fee;
+    const canEnter = isAgeOk && isRankOk && isFundsOk;
+
+    return `<div class="rounded-xl bg-bwf-card border border-slate-800 p-5 space-y-4 font-mono text-xs shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <span class="font-bold text-white text-sm">${t.name}</span>
+        <span class="text-amber-400 font-bold">奖金: $${t.prize.toLocaleString()}</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2 text-[11px] bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+        <div>地区: <strong class="text-slate-200">${t.region}</strong></div>
+        <div>报名费: <strong class="text-emerald-400">$${t.fee}</strong></div>
+        <div>年龄要求: <strong class="${isAgeOk ? 'text-emerald-400' : 'text-rose-400'}">≤ ${t.reqAge} 岁</strong></div>
+        <div>排名要求: <strong class="${isRankOk ? 'text-emerald-400' : 'text-rose-400'}">前 #${t.reqRank}</strong></div>
+      </div>
+      <button onclick="enterTournament('${t.id}')" class="w-full py-2.5 rounded-lg ${canEnter ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950' : 'bg-slate-800 text-slate-500 cursor-not-allowed'} font-bold transition-all" ${canEnter ? '' : 'disabled'}>
+        ${canEnter ? '✈️ 报名出征该比赛' : '⚠️ 条件未满足无法报名'}
+      </button>
+    </div>`;
+  }).join('');
 }
 
 function renderMatchUI() {
   const m = gameState.currentMatch;
   if (!m) return;
 
-  setEl('match-my-team-name', gameState.club.name);
-  setEl('match-opp-team-name', m.opponent);
-  setEl('score-my', m.scoreMy); setEl('score-opp', m.scoreOpp);
-  setEl('match-round-counter', `ROUND ${m.roundNum} / 24 ${m.format === 'BO3' ? `| MAP ${m.currentMapIndex + 1}/3 (${m.seriesScoreMy}-${m.seriesScoreOpp})` : ''}`);
-
-  const mySideText = el('match-my-side-text'), oppSideText = el('match-opp-side-text');
-  const myBadge = el('badge-my-side'), oppBadge = el('badge-opp-side');
-  if (mySideText && oppSideText && myBadge && oppBadge) {
-    mySideText.textContent = `SIDE: ${m.mySide} (${m.mySide === 'CT' ? '防守' : '进攻'})`;
-    oppSideText.textContent = `SIDE: ${m.oppSide} (${m.oppSide === 'CT' ? '防守' : '进攻'})`;
-    myBadge.textContent = m.mySide; oppBadge.textContent = m.oppSide;
-    const ctClass = 'w-12 h-12 rounded-xl bg-cs-ct/20 border border-cs-ct/40 flex items-center justify-center font-extrabold text-cs-ct font-mono text-lg';
-    const tClass = 'w-12 h-12 rounded-xl bg-cs-t/20 border border-cs-t/40 flex items-center justify-center font-extrabold text-cs-t font-mono text-lg';
-    myBadge.className = m.mySide === 'CT' ? ctClass : tClass;
-    oppBadge.className = m.mySide === 'CT' ? tClass : ctClass;
-  }
-
-  setEl('match-map-name', `DE_DUST2 (${m.mySide} vs ${m.oppSide})`);
-  setEl('match-ban-info', `BAN: DE_INFERNO, DE_MIRAGE | ${m.format}`);
-
-  const sm = getCurrentSeasonMatch();
-  setEl('major-stage-title', sm ? `${PHASE_CONFIG[sm.phase]?.label || sm.phase} | DE_DUST2` : '');
-
-  setEl('eco-my-team', gameState.club.name); setEl('eco-opp-team', m.opponent);
-  setEl('eco-my-buy-type', `BUY: ${m.myBuyType}`); setEl('eco-opp-buy-type', `BUY: ${m.oppBuyType}`);
-  setEl('eco-my-money', `$${m.myMoney.toLocaleString()}`); setEl('eco-opp-money', `$${m.oppMoney.toLocaleString()}`);
-
-  const fb = el('kill-feed-box');
-  if (fb) {
-    if (!m.killFeed.length) {
-      fb.innerHTML = '<div class="text-slate-500 italic">点击"模拟下一回合"开始体验 Dust2 对决...</div>';
-    } else {
-      fb.innerHTML = m.killFeed.map(log => {
-        let cls = 'text-slate-300';
-        if (log.includes('---') || log.includes('===')) cls = 'text-amber-400 font-bold border-t border-slate-800 pt-2';
-        else if (log.includes('CLUTCH')) cls = 'text-amber-300 font-bold bg-amber-500/10 p-1 rounded';
-        else if (log.includes('首杀') || log.includes('爆头')) cls = 'text-emerald-400 font-bold';
-        else if (log.includes('失败') || log.includes('❌')) cls = 'text-rose-400';
-        else if (log.includes('炸弹') || log.includes('C4')) cls = 'text-orange-400';
-        else if (log.includes('拆弹') || log.includes('🛡️')) cls = 'text-cyan-400';
-        return `<div class="${cls}">${log}</div>`;
-      }).join('');
-      fb.scrollTop = fb.scrollHeight;
-    }
-  }
+  setEl('court-my-name', gameState.player.name);
+  setEl('court-opp-name', m.oppName);
+  setEl('score-my', m.myScore); setEl('score-opp', m.oppScore);
+  setEl('court-set-counter', `局数: ${m.mySets} - ${m.oppSets} (SET ${m.currentSet})`);
+  setEl('court-match-title', `LIVE MATCH // ${m.tourney.name}`);
 }
 
-function renderBracket() {
-  const view = el('major-bracket-view');
-  if (!view) return;
+function renderShop() {
+  setEl('shop-funds-display', `$${gameState.player.funds.toLocaleString()}`);
+  const grid = el('rackets-grid');
+  if (!grid) return;
 
-  const playoffMatches = gameState.season.calendar.filter(m => m.phase === 'major_playoffs');
-  if (!playoffMatches.length) {
-    view.innerHTML = `<div class="col-span-3 text-slate-500 text-xs italic py-8">Major 淘汰赛尚未开始。完成 Dust2 联赛后解锁淘汰树。</div>`;
-    return;
-  }
-
-  const stages = ['四分之一决赛', '半决赛', '总决赛'];
-  view.innerHTML = playoffMatches.map((m, i) => {
-    const isPlayed = !!m.result;
-    const isWin = m.result === 'WIN';
-    const borderColor = isPlayed ? (isWin ? 'border-emerald-500/50' : 'border-rose-500/50') : 'border-amber-500/30';
-    return `<div class="rounded-xl bg-slate-950 border ${borderColor} p-4 space-y-2">
-      <div class="text-amber-400 font-bold text-[10px]">${stages[i] || 'BO3'}</div>
-      <div class="text-white font-extrabold">${gameState.club.name}</div>
-      <div class="text-slate-500">VS</div>
-      <div class="text-cs-t font-bold">${m.opponent}</div>
-      <div class="text-[10px] ${isWin ? 'text-emerald-400' : isPlayed ? 'text-rose-400' : 'text-slate-500'}">
-        ${isPlayed ? `${m.score} ${isWin ? '✅ WIN' : '❌ LOSS'}` : '🔜 待比赛'}
+  grid.innerHTML = RACKETS.map((r, i) => `
+    <div class="rounded-xl bg-bwf-card border border-slate-800 p-5 space-y-4 font-mono text-xs shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <span class="font-bold text-white text-base">${r.name}</span>
+        <span class="text-emerald-400 font-bold text-sm">$${r.price}</span>
       </div>
-    </div>`;
-  }).join('');
-}
-
-function renderStats() {
-  const tbody = el('stats-tbody');
-  if (!tbody) return;
-
-  tbody.innerHTML = gameState.roster.map(p => {
-    const st = gameState.playerStats[p.id] || { kills: 0, deaths: 0, rounds: 0, clutchWins: 0, clutchAttempts: 0 };
-    const kd = st.deaths > 0 ? (st.kills / st.deaths).toFixed(2) : st.kills.toFixed(2);
-    const kast = st.rounds > 0 ? Math.min(100, Math.round((st.kills + st.clutchWins) / st.rounds * 100 + 40)) : 0;
-    const rating = st.rounds > 0 ? Math.min(2.0, ((st.kills * 0.8 + st.clutchWins * 2) / Math.max(1, st.rounds) + 0.5)).toFixed(2) : '0.00';
-
-    const perkBadges = (p.perks || []).map(pk => { const d = PERK_DEFS[pk]; return d ? d.icon : ''; }).join(' ');
-
-    return `<tr class="hover:bg-slate-900/60 transition-colors">
-      <td class="p-4 font-bold text-white">${p.name} ${perkBadges}</td>
-      <td class="p-4"><span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[10px]">${p.role}</span></td>
-      <td class="p-4 text-emerald-400 font-bold">${st.kills}</td>
-      <td class="p-4 ${parseFloat(kd) >= 1.0 ? 'text-emerald-400' : 'text-rose-400'} font-bold">${kd}</td>
-      <td class="p-4 text-cyan-400">${kast}%</td>
-      <td class="p-4 ${parseFloat(rating) >= 1.0 ? 'text-amber-400' : 'text-slate-400'} font-bold">${rating}</td>
-      <td class="p-4 text-purple-400 font-bold">${st.clutchWins} / ${st.clutchAttempts}</td>
-    </tr>`;
-  }).join('');
-}
-
-function renderTrophyCabinet() {
-  const cab = el('trophy-cabinet');
-  if (!cab) return;
-  if (!gameState.trophies.length) {
-    cab.innerHTML = '<div class="col-span-3 text-slate-500 text-xs italic py-4">尚未获得 Dust2 Major 冠军奖杯。</div>';
-    return;
-  }
-  cab.innerHTML = gameState.trophies.map(t => `
-    <div class="rounded-xl bg-slate-950 border border-amber-500/50 p-5 text-center space-y-2 trophy-gold">
-      <div class="text-4xl">🏆</div>
-      <div class="text-amber-400 font-extrabold text-sm">${t.title}</div>
-      <div class="text-slate-400 text-[10px]">${t.date}</div>
-      <div class="text-cyan-400 font-bold text-[11px]">MVP: ${t.mvpPlayer}</div>
+      <p class="text-slate-400 text-[11px]">${r.desc}</p>
+      <div class="p-2 rounded bg-slate-950 text-cyan-400 font-bold">${r.boost}</div>
+      <button onclick="buyRacket(${i})" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition-all">
+        💰 签约购买球拍 ($${r.price})
+      </button>
     </div>`).join('');
 }
 
 function renderRankings() {
   const tbody = el('rankings-tbody');
   if (!tbody) return;
-  gameState.hltvRankings.sort((a, b) => a.rank - b.rank);
-  tbody.innerHTML = gameState.hltvRankings.map(r => {
-    const isUser = r.name === gameState.club.name;
-    return `<tr class="${isUser ? 'bg-amber-500/10 font-bold text-amber-400' : 'hover:bg-slate-900/60'} transition-colors">
+
+  tbody.innerHTML = gameState.hltvRankings.map(r => `
+    <tr class="${r.name.includes('YOU') ? 'bg-emerald-500/10 font-bold text-emerald-400' : 'hover:bg-slate-900/60'} transition-colors">
       <td class="p-4 font-bold">#${r.rank}</td>
-      <td class="p-4 flex items-center gap-2"><span>${r.name}</span>${isUser ? '<span class="px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 text-[10px]">YOUR CLUB</span>' : ''}</td>
-      <td class="p-4">${r.region}</td>
-      <td class="p-4 text-emerald-400 font-bold">${r.points} pts</td>
-      <td class="p-4 text-slate-400">${r.winLoss}</td>
-    </tr>`;
-  }).join('');
-}
+      <td class="p-4 font-bold">${r.name}</td>
+      <td class="p-4">${r.country}</td>
+      <td class="p-4 text-emerald-400 font-bold">${r.points.toLocaleString()} pts</td>
+      <td class="p-4 text-amber-400 font-bold">${r.titles} 🏆</td>
+    </tr>`).join('');
 
-/* ==========================================================================
-   8. 2D LIVE DUST2 RADAR VISUALIZER — DUST II 专属高细节战术雷达引擎
-   ========================================================================== */
-let radarCanvas = null;
-let radarCtx = null;
-let radarAnimationId = null;
-
-let radarEntities = {
-  cts: [],
-  ts: [],
-  tracers: [],
-  smokes: [],
-  flashes: [],
-  c4: { active: false, x: 0, y: 0, plantedAt: null, timer: 0 },
-  roundPhase: 'PREP'
-};
-
-// 真实的 CS:GO DE_DUST2 战术区域精准坐标 (800 x 450 Canvas)
-const DUST2_ZONES = {
-  tSpawn:     { x: 90,  y: 380, label: 'T SPAWN' },
-  outsideLong:{ x: 250, y: 380, label: 'OUTSIDE LONG' },
-  longDoors:  { x: 390, y: 380, label: 'LONG DOORS' },
-  pit:        { x: 520, y: 410, label: 'PIT' },
-  aLong:      { x: 670, y: 320, label: 'A LONG' },
-  aSite:      { x: 690, y: 130, label: 'A SITE' },
-  goose:      { x: 745, y: 95,  label: 'GOOSE' },
-  shortA:     { x: 540, y: 160, label: 'SHORT A' },
-  catwalk:    { x: 440, y: 220, label: 'CATWALK' },
-  xbox:       { x: 375, y: 220, label: 'XBOX' },
-  mid:        { x: 350, y: 250, label: 'MID DOORS' },
-  suicide:    { x: 220, y: 290, label: 'SUICIDE' },
-  lowerTunnel:{ x: 260, y: 190, label: 'LOWER TUNNEL' },
-  upperTunnel:{ x: 140, y: 180, label: 'UPPER TUNNEL' },
-  bSite:      { x: 150, y: 90,  label: 'B SITE' },
-  bDoors:     { x: 270, y: 95,  label: 'B DOORS' },
-  ctSpawn:    { x: 480, y: 85,  label: 'CT SPAWN' },
-};
-
-function initRadarCanvas() {
-  radarCanvas = document.getElementById('radar-canvas');
-  if (!radarCanvas) return;
-  radarCtx = radarCanvas.getContext('2d');
-  resetRadarPositions();
-  if (!radarAnimationId) {
-    requestAnimationFrame(radarLoop);
-  }
-}
-
-function resetRadarPositions() {
-  const m = gameState.currentMatch;
-  const isUserCT = m ? m.mySide === 'CT' : true;
-  const opp = m ? getOppProfile(m.opponent) : null;
-
-  const userRoster = gameState.roster;
-  const oppRoster = [
-    { name: opp?.star || 'OppStar', movement: 88, role: 'AWPer' },
-    { name: 'Rifle_Ace', movement: 85, role: 'Entry' },
-    { name: 'Support_Guy', movement: 82, role: 'Support' },
-    { name: 'IGL_Pro', movement: 80, role: 'IGL' },
-    { name: 'Lurk_Master', movement: 86, role: 'Lurker' }
-  ];
-
-  const ctPlayers = isUserCT ? userRoster : oppRoster;
-  const tPlayers = !isUserCT ? userRoster : oppRoster;
-
-  radarEntities.cts = ctPlayers.map((p, i) => {
-    const moveStat = p.movement || 82;
-    // 基于身法 Speed 属性计算真人在地图上的跑步移动速度 (1.5 ~ 3.2 px/frame)
-    const baseSpeed = 1.5 + (moveStat / 100) * 1.7;
-    const speed = p.role === 'AWPer' ? baseSpeed * 0.88 : baseSpeed; // 持狙移动减速
-
-    return {
-      id: `ct_${i}`, name: p.name, team: 'CT', role: p.role,
-      x: DUST2_ZONES.ctSpawn.x + (Math.random() * 40 - 20),
-      y: DUST2_ZONES.ctSpawn.y + (i * 18 - 36),
-      path: [DUST2_ZONES.ctSpawn],
-      pathIndex: 0,
-      targetX: DUST2_ZONES.ctSpawn.x,
-      targetY: DUST2_ZONES.ctSpawn.y,
-      speed: speed,
-      angle: 0, hp: 100, isAlive: true,
-      color: '#38bdf8'
-    };
-  });
-
-  radarEntities.ts = tPlayers.map((p, i) => {
-    const moveStat = p.movement || 82;
-    const baseSpeed = 1.5 + (moveStat / 100) * 1.7;
-    const speed = p.role === 'AWPer' ? baseSpeed * 0.88 : baseSpeed;
-
-    return {
-      id: `t_${i}`, name: p.name, team: 'T', role: p.role,
-      x: DUST2_ZONES.tSpawn.x + (Math.random() * 40 - 20),
-      y: DUST2_ZONES.tSpawn.y + (i * 18 - 36),
-      path: [DUST2_ZONES.tSpawn],
-      pathIndex: 0,
-      targetX: DUST2_ZONES.tSpawn.x,
-      targetY: DUST2_ZONES.tSpawn.y,
-      speed: speed,
-      angle: 0, hp: 100, isAlive: true,
-      color: '#f97316'
-    };
-  });
-
-  radarEntities.tracers = [];
-  radarEntities.smokes = [];
-  radarEntities.flashes = [];
-  radarEntities.c4 = { active: false, x: 0, y: 0, plantedAt: null, timer: 0 };
-  radarEntities.roundPhase = 'PREP';
-
-  const alertBanner = document.getElementById('c4-alert-banner');
-  if (alertBanner) alertBanner.classList.add('hidden');
-  
-  const tag = document.getElementById('radar-status-tag');
-  if (tag) {
-    tag.textContent = 'Dust2 准备阶段 (PREP)';
-    tag.className = 'px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold';
-  }
-}
-
-// 模拟 Dust2 经典战术推进路线 (带真实航点路径)
-function triggerRadarBattle(myWon) {
-  if (!radarCtx) initRadarCanvas();
-
-  const stratRoll = Math.random();
-  let stratName = 'A LONG RUSH (A大攻势)';
-  let targetSite = DUST2_ZONES.aSite;
-
-  // 预设路线 (T 队沿走廊航点移动)
-  let tPathALong = [DUST2_ZONES.tSpawn, DUST2_ZONES.outsideLong, DUST2_ZONES.longDoors, DUST2_ZONES.aLong, DUST2_ZONES.aSite];
-  let tPathB = [DUST2_ZONES.tSpawn, DUST2_ZONES.upperTunnel, DUST2_ZONES.bSite];
-  let tPathMidShort = [DUST2_ZONES.tSpawn, DUST2_ZONES.suicide, DUST2_ZONES.mid, DUST2_ZONES.xbox, DUST2_ZONES.catwalk, DUST2_ZONES.shortA, DUST2_ZONES.aSite];
-
-  let selectedTPath = tPathALong;
-
-  if (stratRoll < 0.35) {
-    stratName = 'B TUNNELS RUSH (B洞强冲)';
-    targetSite = DUST2_ZONES.bSite;
-    selectedTPath = tPathB;
-  } else if (stratRoll < 0.7) {
-    stratName = 'MID TO SHORT A (中路转A小)';
-    targetSite = DUST2_ZONES.aSite;
-    selectedTPath = tPathMidShort;
-  }
-
-  radarEntities.roundPhase = 'ENGAGE';
-  const tag = document.getElementById('radar-status-tag');
-  if (tag) {
-    tag.textContent = `⚡ Dust2 战术推进: ${stratName}`;
-    tag.className = 'px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-400 font-bold animate-pulse';
-  }
-
-  // 为 T 队分配路径与目标
-  radarEntities.ts.forEach((t, i) => {
-    if (!t.isAlive) return;
-    t.path = selectedTPath;
-    t.pathIndex = 0;
-    t.targetX = selectedTPath[0].x;
-    t.targetY = selectedTPath[0].y;
-  });
-
-  // 为 CT 队分配 Dust2 防守路径
-  radarEntities.cts.forEach((ct, i) => {
-    if (!ct.isAlive) return;
-    let ctPath = [DUST2_ZONES.ctSpawn];
-    if (i === 0) ctPath.push({ x: DUST2_ZONES.mid.x, y: DUST2_ZONES.ctSpawn.y + 35 }); // Mid AWP
-    else if (i <= 2) ctPath.push(DUST2_ZONES.aSite, DUST2_ZONES.goose);
-    else ctPath.push(DUST2_ZONES.bSite, DUST2_ZONES.bDoors);
-
-    ct.path = ctPath;
-    ct.pathIndex = 0;
-    ct.targetX = ctPath[0].x;
-    ct.targetY = ctPath[0].y;
-  });
-
-  // 阶段 2: 双方推进接触后触发交火
-  setTimeout(() => {
-    radarEntities.smokes.push({ x: targetSite.x + (Math.random() * 30 - 15), y: targetSite.y + (Math.random() * 30 - 15), radius: 35, opacity: 0.85 });
-    radarEntities.flashes.push({ x: targetSite.x + 10, y: targetSite.y - 10, radius: 15, opacity: 1.0 });
-
-    const aliveCTs = radarEntities.cts.filter(c => c.isAlive);
-    const aliveTs = radarEntities.ts.filter(t => t.isAlive);
-
-    for (let k = 0; k < 8; k++) {
-      if (aliveCTs.length && aliveTs.length) {
-        const ct = aliveCTs[Math.floor(Math.random() * aliveCTs.length)];
-        const t = aliveTs[Math.floor(Math.random() * aliveTs.length)];
-        radarEntities.tracers.push({
-          x1: ct.x, y1: ct.y, x2: t.x, y2: t.y, opacity: 1.0, color: '#f59e0b'
-        });
-      }
-    }
-
-    if (myWon) {
-      const loserTeam = gameState.currentMatch?.mySide === 'CT' ? radarEntities.ts : radarEntities.cts;
-      const winnerTeam = gameState.currentMatch?.mySide === 'CT' ? radarEntities.cts : radarEntities.ts;
-      loserTeam.filter(p => p.isAlive).slice(0, 4).forEach(p => { p.isAlive = false; p.hp = 0; });
-      winnerTeam.filter(p => p.isAlive).slice(0, 1).forEach(p => { p.hp = 30; });
+  const cab = el('trophy-cabinet');
+  if (cab) {
+    if (!gameState.player.trophies.length) {
+      cab.innerHTML = '<div class="col-span-3 text-slate-500 text-xs italic py-4">尚未赢得荣誉冠军奖杯。</div>';
     } else {
-      const loserTeam = gameState.currentMatch?.mySide === 'CT' ? radarEntities.cts : radarEntities.ts;
-      loserTeam.filter(p => p.isAlive).slice(0, 4).forEach(p => { p.isAlive = false; p.hp = 0; });
+      cab.innerHTML = gameState.player.trophies.map(t => `
+        <div class="rounded-xl bg-slate-950 border border-amber-500/50 p-5 text-center space-y-2 trophy-gold font-mono text-xs">
+          <div class="text-4xl">🥇</div>
+          <div class="text-amber-400 font-extrabold text-sm">${t.title}</div>
+          <div class="text-slate-400 text-[10px]">${t.date}</div>
+        </div>`).join('');
     }
-
-    if (Math.random() < 0.65) {
-      radarEntities.c4.active = true;
-      radarEntities.c4.x = targetSite.x;
-      radarEntities.c4.y = targetSite.y;
-      radarEntities.c4.plantedAt = targetSite.label;
-      
-      const alertBanner = document.getElementById('c4-alert-banner');
-      if (alertBanner) alertBanner.classList.remove('hidden');
-    }
-  }, 900);
-}
-
-// 60FPS High-Detail Radar 渲染 Loop
-function radarLoop() {
-  if (radarCtx && radarCanvas) {
-    drawDust2RadarHighDetail();
   }
-  requestAnimationFrame(radarLoop);
 }
-
-function drawDust2RadarHighDetail() {
-  const width = radarCanvas.width;
-  const height = radarCanvas.height;
-
-  // 1. 沙色沙尘主题背景底色
-  radarCtx.fillStyle = '#0e1420';
-  radarCtx.fillRect(0, 0, width, height);
-
-  // 战术坐标网格
-  radarCtx.strokeStyle = 'rgba(45, 59, 85, 0.35)';
-  radarCtx.lineWidth = 1;
-  for (let x = 0; x < width; x += 40) {
-    radarCtx.beginPath(); radarCtx.moveTo(x, 0); radarCtx.lineTo(x, height); radarCtx.stroke();
-  }
-  for (let y = 0; y < height; y += 40) {
-    radarCtx.beginPath(); radarCtx.moveTo(0, y); radarCtx.lineTo(width, y); radarCtx.stroke();
-  }
-
-  // 2. 绘制 Dust II 精准 2D 建筑墙体与地图实景全貌
-  drawDust2DetailedMapGeometry(width, height);
-
-  // 3. 烟雾弹云雾
-  radarEntities.smokes.forEach(s => {
-    radarCtx.beginPath();
-    radarCtx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
-    radarCtx.fillStyle = `rgba(148, 163, 184, ${s.opacity})`;
-    radarCtx.fill();
-    s.radius = Math.min(45, s.radius + 0.15);
-  });
-
-  // 4. 枪口火焰 (Muzzle Flashes)
-  radarEntities.flashes.forEach(f => {
-    radarCtx.beginPath();
-    radarCtx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
-    radarCtx.fillStyle = `rgba(251, 191, 36, ${f.opacity})`;
-    radarCtx.fill();
-    f.opacity -= 0.08;
-  });
-  radarEntities.flashes = radarEntities.flashes.filter(f => f.opacity > 0);
-
-  // 5. C4 爆破警告圈
-  if (radarEntities.c4.active) {
-    const pulse = (Date.now() % 1000) / 1000;
-    radarCtx.beginPath();
-    radarCtx.arc(radarEntities.c4.x, radarEntities.c4.y, 12 + pulse * 24, 0, Math.PI * 2);
-    radarCtx.strokeStyle = `rgba(244, 63, 94, ${1 - pulse})`;
-    radarCtx.lineWidth = 3;
-    radarCtx.stroke();
-
-    radarCtx.beginPath();
-    radarCtx.arc(radarEntities.c4.x, radarEntities.c4.y, 7, 0, Math.PI * 2);
-    radarCtx.fillStyle = '#f43f5e';
-    radarCtx.fill();
-
-    radarCtx.fillStyle = '#ffffff';
-    radarCtx.font = 'bold 9px monospace';
-    radarCtx.textAlign = 'center';
-    radarCtx.fillText('💣 C4', radarEntities.c4.x, radarEntities.c4.y - 12);
-  }
-
-  // 6. 弹道射线 (Tracers)
-  radarEntities.tracers.forEach(t => {
-    radarCtx.beginPath();
-    radarCtx.moveTo(t.x1, t.y1);
-    radarCtx.lineTo(t.x2, t.y2);
-    radarCtx.strokeStyle = `rgba(245, 158, 11, ${t.opacity})`;
-    radarCtx.lineWidth = 2.5;
-    radarCtx.stroke();
-    t.opacity -= 0.05;
-  });
-  radarEntities.tracers = radarEntities.tracers.filter(t => t.opacity > 0);
-
-  // 7. 绘制 CT (蓝色) & T (橙色) 选手圆点 (基于选手实际 Speed 属性沿 Dust2 航点逐帧步进)
-  const allPlayers = [...radarEntities.cts, ...radarEntities.ts];
-
-  allPlayers.forEach(p => {
-    if (!p.isAlive) {
-      radarCtx.fillStyle = 'rgba(148, 163, 184, 0.5)';
-      radarCtx.font = 'bold 12px monospace';
-      radarCtx.fillText('✖', p.x - 4, p.y + 4);
-      return;
-    }
-
-    // 检查是否需要更新航点目标
-    if (p.path && p.path.length > 0) {
-      const currentTarget = p.path[p.pathIndex];
-      if (currentTarget) {
-        p.targetX = currentTarget.x;
-        p.targetY = currentTarget.y;
-
-        const distToTarget = Math.hypot(currentTarget.x - p.x, currentTarget.y - p.y);
-        // 如果到达当前航点，自动切换到下一个航点
-        if (distToTarget < 12 && p.pathIndex < p.path.length - 1) {
-          p.pathIndex++;
-        }
-      }
-    }
-
-    // 计算方向向量与按选手 speed 步进移动
-    const dx = p.targetX - p.x;
-    const dy = p.targetY - p.y;
-    const dist = Math.hypot(dx, dy);
-
-    if (dist > 1.5) {
-      p.angle = Math.atan2(dy, dx);
-      // 使用基于选手身法 Speed 属性计算的真实移动速度
-      const step = Math.min(dist, p.speed || 2.0);
-      p.x += Math.cos(p.angle) * step;
-      p.y += Math.sin(p.angle) * step;
-    }
-
-    // 视角 FOV 扇形 (Field of View Cone)
-    radarCtx.save();
-    radarCtx.beginPath();
-    radarCtx.moveTo(p.x, p.y);
-    radarCtx.arc(p.x, p.y, 25, p.angle - 0.35, p.angle + 0.35);
-    radarCtx.closePath();
-    radarCtx.fillStyle = p.team === 'CT' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(249, 115, 22, 0.15)';
-    radarCtx.fill();
-    radarCtx.restore();
-
-    // 选手圆点光效
-    radarCtx.beginPath();
-    radarCtx.arc(p.x, p.y, 8, 0, Math.PI * 2);
-    radarCtx.fillStyle = p.team === 'CT' ? '#38bdf8' : '#f97316';
-    radarCtx.shadowColor = p.team === 'CT' ? '#38bdf8' : '#f97316';
-    radarCtx.shadowBlur = 10;
-    radarCtx.fill();
-    radarCtx.shadowBlur = 0;
-
-    radarCtx.lineWidth = 2;
-    radarCtx.strokeStyle = '#ffffff';
-    radarCtx.stroke();
-
-    // 血量环 (Health Ring Gauge)
-    if (p.hp < 100) {
-      radarCtx.beginPath();
-      radarCtx.arc(p.x, p.y, 11, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * (p.hp / 100)));
-      radarCtx.strokeStyle = p.hp > 50 ? '#10b981' : '#f43f5e';
-      radarCtx.lineWidth = 2;
-      radarCtx.stroke();
-    }
-
-    // 名字 Label
-    radarCtx.fillStyle = p.team === 'CT' ? '#7dd3fc' : '#ffedd5';
-    radarCtx.font = 'bold 10px monospace';
-    radarCtx.textAlign = 'center';
-    radarCtx.fillText(p.name, p.x, p.y - 14);
-  });
-}
-
-// 绘制高度逼真精细的 CS:GO Dust II 2D 地图全貌
-function drawDust2DetailedMapGeometry(width, height) {
-  // 1. 沙石主通道 Ground Shading
-  radarCtx.fillStyle = '#172030';
-  
-  // A 大通道 Long A Pathway
-  radarCtx.fillRect(250, 360, 420, 40);
-  radarCtx.fillRect(650, 130, 40, 240);
-
-  // Short A / Catwalk Pathway
-  radarCtx.fillRect(350, 220, 190, 30);
-  radarCtx.fillRect(520, 150, 40, 100);
-
-  // Mid Corridor & Suicide
-  radarCtx.fillRect(220, 275, 140, 30);
-  radarCtx.fillRect(335, 100, 35, 190);
-
-  // CT Ramp & Spawn
-  radarCtx.fillRect(440, 75, 100, 40);
-
-  // 2. 绘制 B 洞 Upper & Lower Tunnels 专属暗色与斜纹顶棚 (Roof Hatching)
-  radarCtx.fillStyle = '#111827';
-  radarCtx.fillRect(110, 160, 160, 40); // Upper tunnel
-  radarCtx.fillRect(240, 180, 40, 60);  // Lower tunnel
-
-  // Tunnel 斜线纹理
-  radarCtx.strokeStyle = 'rgba(75, 85, 99, 0.4)';
-  radarCtx.lineWidth = 1;
-  for (let tx = 110; tx < 270; tx += 10) {
-    radarCtx.beginPath(); radarCtx.moveTo(tx, 160); radarCtx.lineTo(tx + 8, 200); radarCtx.stroke();
-  }
-
-  // 3. 通道墙体边界 Main Walls
-  radarCtx.lineWidth = 3.5;
-  radarCtx.strokeStyle = '#334155';
-
-  radarCtx.beginPath();
-  // T Spawn -> Outside Long -> Long Doors -> A Long -> A Site
-  radarCtx.moveTo(DUST2_ZONES.tSpawn.x, DUST2_ZONES.tSpawn.y);
-  radarCtx.lineTo(DUST2_ZONES.outsideLong.x, DUST2_ZONES.outsideLong.y);
-  radarCtx.lineTo(DUST2_ZONES.longDoors.x, DUST2_ZONES.longDoors.y);
-  radarCtx.lineTo(DUST2_ZONES.aLong.x, DUST2_ZONES.aLong.y);
-  radarCtx.lineTo(DUST2_ZONES.aSite.x, DUST2_ZONES.aSite.y);
-
-  // Pit
-  radarCtx.moveTo(DUST2_ZONES.longDoors.x, DUST2_ZONES.longDoors.y);
-  radarCtx.lineTo(DUST2_ZONES.pit.x, DUST2_ZONES.pit.y);
-
-  // Mid & Catwalk
-  radarCtx.moveTo(DUST2_ZONES.suicide.x, DUST2_ZONES.suicide.y);
-  radarCtx.lineTo(DUST2_ZONES.mid.x, DUST2_ZONES.mid.y);
-  radarCtx.lineTo(DUST2_ZONES.catwalk.x, DUST2_ZONES.catwalk.y);
-  radarCtx.lineTo(DUST2_ZONES.shortA.x, DUST2_ZONES.shortA.y);
-  radarCtx.lineTo(DUST2_ZONES.aSite.x, DUST2_ZONES.aSite.y);
-
-  // B Tunnels -> B Site
-  radarCtx.moveTo(DUST2_ZONES.tSpawn.x, DUST2_ZONES.tSpawn.y);
-  radarCtx.lineTo(DUST2_ZONES.upperTunnel.x, DUST2_ZONES.upperTunnel.y);
-  radarCtx.lineTo(DUST2_ZONES.bSite.x, DUST2_ZONES.bSite.y);
-
-  // Lower tunnel -> Mid
-  radarCtx.moveTo(DUST2_ZONES.upperTunnel.x, DUST2_ZONES.upperTunnel.y);
-  radarCtx.lineTo(DUST2_ZONES.lowerTunnel.x, DUST2_ZONES.lowerTunnel.y);
-  radarCtx.lineTo(DUST2_ZONES.mid.x, DUST2_ZONES.mid.y);
-
-  // CT Spawn connections
-  radarCtx.moveTo(DUST2_ZONES.ctSpawn.x, DUST2_ZONES.ctSpawn.y);
-  radarCtx.lineTo(DUST2_ZONES.aSite.x, DUST2_ZONES.aSite.y);
-  radarCtx.moveTo(DUST2_ZONES.ctSpawn.x, DUST2_ZONES.ctSpawn.y);
-  radarCtx.lineTo(DUST2_ZONES.bDoors.x, DUST2_ZONES.bDoors.y);
-  radarCtx.lineTo(DUST2_ZONES.bSite.x, DUST2_ZONES.bSite.y);
-
-  radarCtx.stroke();
-
-  // 4. 绘制 Dust2 经典掩体障碍物 (Obstacles & Boxes)
-  // Xbox Box at Mid
-  drawBoxObstacle(DUST2_ZONES.xbox.x, DUST2_ZONES.xbox.y, 16, 16, 'XBOX', '#d97706');
-
-  // Goose Box at A
-  drawBoxObstacle(DUST2_ZONES.goose.x, DUST2_ZONES.goose.y, 22, 18, 'GOOSE', '#64748b');
-
-  // A Site Platform Box
-  drawBoxObstacle(DUST2_ZONES.aSite.x + 15, DUST2_ZONES.aSite.y - 10, 24, 24, 'BOXES', '#f59e0b');
-
-  // B Site Platform Box
-  drawBoxObstacle(DUST2_ZONES.bSite.x - 10, DUST2_ZONES.bSite.y + 10, 26, 26, 'PLATFORM', '#f59e0b');
-
-  // 门标记 (Doors)
-  drawDoorMarker(DUST2_ZONES.mid.x, DUST2_ZONES.mid.y - 20, 'MID DOORS');
-  drawDoorMarker(DUST2_ZONES.longDoors.x, DUST2_ZONES.longDoors.y, 'LONG DOORS');
-  drawDoorMarker(DUST2_ZONES.bDoors.x, DUST2_ZONES.bDoors.y, 'B DOORS');
-
-  // 5. 绘制 A / B 包点 Zone
-  drawDust2ZoneBox(DUST2_ZONES.aSite.x, DUST2_ZONES.aSite.y, 90, 60, 'A SITE', '#f59e0b');
-  drawDust2ZoneBox(DUST2_ZONES.bSite.x, DUST2_ZONES.bSite.y, 90, 60, 'B SITE', '#f59e0b');
-  drawDust2ZoneBox(DUST2_ZONES.ctSpawn.x, DUST2_ZONES.ctSpawn.y, 80, 50, 'CT SPAWN', '#38bdf8');
-  drawDust2ZoneBox(DUST2_ZONES.tSpawn.x, DUST2_ZONES.tSpawn.y, 80, 50, 'T SPAWN', '#f97316');
-
-  // 坑下 Pit Outline
-  radarCtx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
-  radarCtx.strokeRect(DUST2_ZONES.pit.x - 20, DUST2_ZONES.pit.y - 15, 40, 30);
-  radarCtx.fillStyle = 'rgba(239, 68, 68, 0.6)';
-  radarCtx.font = 'bold 9px monospace';
-  radarCtx.textAlign = 'center';
-  radarCtx.fillText('PIT', DUST2_ZONES.pit.x, DUST2_ZONES.pit.y + 3);
-
-  // 罗盘 & 标题
-  drawCompassRose(width - 50, 45);
-
-  radarCtx.fillStyle = '#f59e0b';
-  radarCtx.font = 'bold 12px monospace';
-  radarCtx.textAlign = 'left';
-  radarCtx.fillText('MAP: DE_DUST2 // CS:GO PRO HIGH-DETAIL RADAR', 15, 25);
-}
-
-function drawBoxObstacle(x, y, w, h, label, color) {
-  radarCtx.fillStyle = `${color}40`;
-  radarCtx.strokeStyle = color;
-  radarCtx.lineWidth = 1.5;
-  radarCtx.fillRect(x - w / 2, y - h / 2, w, h);
-  radarCtx.strokeRect(x - w / 2, y - h / 2, w, h);
-}
-
-function drawDoorMarker(x, y, label) {
-  radarCtx.fillStyle = '#e2e8f0';
-  radarCtx.font = 'bold 9px monospace';
-  radarCtx.textAlign = 'center';
-  radarCtx.fillText(`🚪 ${label}`, x, y);
-}
-
-function drawCompassRose(cx, cy) {
-  radarCtx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
-  radarCtx.lineWidth = 1.5;
-  radarCtx.beginPath();
-  radarCtx.arc(cx, cy, 18, 0, Math.PI * 2);
-  radarCtx.stroke();
-
-  radarCtx.fillStyle = '#f59e0b';
-  radarCtx.font = 'bold 9px monospace';
-  radarCtx.textAlign = 'center';
-  radarCtx.fillText('N', cx, cy - 22);
-  radarCtx.fillText('E', cx + 24, cy + 3);
-  radarCtx.fillText('S', cx, cy + 28);
-  radarCtx.fillText('W', cx - 24, cy + 3);
-}
-
-function drawDust2ZoneBox(cx, cy, w, h, label, color) {
-  const x = cx - w / 2;
-  const y = cy - h / 2;
-  radarCtx.fillStyle = `${color}20`;
-  radarCtx.strokeStyle = `${color}80`;
-  radarCtx.lineWidth = 1.5;
-
-  radarCtx.fillRect(x, y, w, h);
-  radarCtx.strokeRect(x, y, w, h);
-
-  radarCtx.fillStyle = color;
-  radarCtx.font = 'bold 10px monospace';
-  radarCtx.textAlign = 'center';
-  radarCtx.fillText(label, cx, cy + 4);
-}
-
-// 挂钩模拟回合
-const originalSimulateRound = simulateRound;
-simulateRound = function() {
-  const m = gameState.currentMatch;
-  const myWonBefore = m ? m.scoreMy : 0;
-  originalSimulateRound();
-  
-  if (gameState.currentMatch) {
-    const myWon = gameState.currentMatch.scoreMy > myWonBefore;
-    triggerRadarBattle(myWon);
-  }
-};
-
-const originalInitNewMatch = initNewMatch;
-initNewMatch = function(oppName, format) {
-  originalInitNewMatch(oppName, format);
-  resetRadarPositions();
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(initRadarCanvas, 200);
-});

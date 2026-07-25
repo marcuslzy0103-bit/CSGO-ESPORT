@@ -1,51 +1,42 @@
-# COUNTER-MANAGER 2026 // CS:GO & CS2 ESPORTS SIMULATION GAME
+# 🏸 BADMINTON LIFE PRO 2026 // 羽毛球人生与职业生涯 RPG 模拟器
 
-<p align="left">
-  <img src="https://img.shields.io/badge/Game-CS%3AGO%20%2F%20CS2%20Manager-f59e0b?style=for-the-badge&logo=counterstrike" alt="CS:GO Manager" />
-  <img src="https://img.shields.io/badge/Engine-HLTV%20Live%20Kill%20Feed-10b981?style=for-the-badge&logo=speedtest" alt="HLTV Live Engine" />
-  <img src="https://img.shields.io/badge/Economy-CS%20Round%20Economy-06b6d4?style=for-the-badge&logo=dollar" alt="CS Economy" />
-  <img src="https://img.shields.io/badge/Stack-HTML5%20%2B%20Tailwind%20CSS-38bdf8?style=for-the-badge&logo=tailwindcss" alt="Tailwind CSS" />
-  <img src="https://img.shields.io/badge/License-MIT-c084fc?style=for-the-badge" alt="License MIT" />
-</p>
+![Badminton Life Pro 2026](https://img.shields.io/badge/BADMINTON-LIFE%20RPG%202026-10b981?style=for-the-badge)
 
-> 🎮 **Live Demo 在线体验**: [https://marcuslzy0103-bit.github.io/CSGO-ESPORT/](https://marcuslzy0103-bit.github.io/CSGO-ESPORT/)
->
-> 📦 **GitHub 源码仓库**: [https://github.com/marcuslzy0103-bit/CSGO-ESPORT](https://github.com/marcuslzy0103-bit/CSGO-ESPORT)
-
-**COUNTER-MANAGER 2026** 是一款灵感源自 EA Sports FC / Football Manager 职业经理模式的 **CS:GO / CS2 电子竞技战队经理模拟 Web 游戏**。
-
-玩家将扮演 CS 职业俱乐部的总经理兼主教练：自建俱乐部并带着 $100,000 初始资金招募狙击手 (AWPer)、突破手 (Entry)、战术指挥 (IGL) 等顶级选手，管理每回合 $16,000 CS 经济，并在 HLTV Live 击杀流播报中率队冲击 Major 冠军与世界第一排名！
+首款从 **0 岁出生启蒙** 开始的羽毛球人生 RPG 模拟游戏！
+自由分配属性点数（重杀爆发、身法步法、网前手感、体能储备、假动作），自主选择报名参加全球比赛，从小少儿杯赛一路打到 BWF 全英公开赛 S1000 与奥运金牌！
 
 ---
 
-## ✨ 核心游戏玩法与亮点
+## 🌟 核心游戏特色 (Game Features)
 
-1. 🏆 **自定义战队与 HLTV 5 维属性**:
-   - 分配 **AWPer**、**IGL**、**Entry**、**Support**、**Lurker** 5 大位置分工。
-   - 枪法 (Aim)、意识 (Sense)、残局 (Clutch)、身法 (Movement)、士气 (Morale) 5 维属性指标。
-2. ⚔️ **原汁原味 CS 经济与 Live 击杀流引擎**:
-   - 模拟初始 $800 手枪局 ➔ 连败补偿 ($1,400~$3,400) ➔ 强买 Force Buy ➔ 满配长枪局 Full Buy。
-   - 实时 HLTV Kill Feed 击杀流播报（爆头击杀、炸弹安放、拆弹、1v2 / 1v3 残局 Clutch 悬念）。
-3. 🛒 **选手转会市场 & 财务管理**:
-   - 实时招募自由市场与挂牌明星选手。
-   - 赢取 Major 赛场奖金（$25,000 / 胜局）并管理战队月薪支出。
-4. 🏆 **HLTV 世界排名榜**:
-   - 与 Natus Vincere、Team Vitality、FaZe Clan、G2 Esports 等世界豪门角逐 HLTV 世界积分排名。
+1. **👶 0 ~ 38 岁全景羽毛球人生歷程 (Life Stages)**:
+   - **童年启蒙 (0-6 岁)**: 出生基因身高预测 (175-188 cm) & 初始灵敏度。
+   - **少儿与校队 (7-12 岁)**: 报名市级少儿赛 ($50 报名费)，积累赛事经验。
+   - **国青试训 (13-17 岁)**: 试训省队与国家青年队，征战世青赛 (WJBC)。
+   - **BWF 职业巡回赛 (18-32 岁)**: 自由报名 S300/S500/S750/S1000 全英公开赛与巴黎奥运会！
+   - **老将退役 (33-38 岁)**: 经验弥补体能下降，终成羽毛球名人堂传奇。
+
+2. **🎯 自由属性加点系统 (Stat Points Allocation)**:
+   - 💥 **杀球爆发力 (Smash Power)**: 提升重杀得分率与杀球最高时速 (400+ km/h 特效！)。
+   - ⚡ **身法步法 (Footwork Speed)**: 提升全场防守覆盖跑位速度与救球成功率。
+   - 🎾 **网前手感 (Net Touch)**: 提升搓球、贴网放网、勾对角得分率。
+   - 🫁 **体能储备 (Stamina)**: 降低第三局决胜局与 Deuce 拉锯战的体能衰减。
+   - 🎭 **假动作与心态 (Deception)**: 提升停顿推球骗重心成功率与关键分抗压能力。
+   - 🛡️ **抗伤病率 (Injury Resistance)**: 降低高强度密集赛程下的拉伤概率。
+
+3. **📅 自由比赛报名大厅 (Tournament Arena)**:
+   - 玩家每周自由选择 **“闭关特训积累 TP”** 还是 **“报名出征世界比赛”**！
+
+4. **📡 2D BWF 绿地胶球场实况观战引擎 (2D Court Canvas)**:
+   - 标准 BWF 羽毛球地胶画质，羽毛球高远球、重杀与网前搓球飞行弧线！
+   - ⚡ **Monster Smash 400+ km/h 暴击播报** 与 🦅 **鹰眼挑战 (Hawk-Eye)** 近景压线校验动画！
+
+5. **🛒 球拍装备与赞助商**:
+   - 签约 Yonex Astrox 100ZZ (安赛龙同款)、Victor 龙牙之刃、Li-Ning 风动系列！
 
 ---
 
-## 📁 项目结构 (Directory Structure)
+## 🔗 在线试玩与部署 (Live Demo)
 
-```text
-MyProject/
-├── index.html                   # 暗黑电竞风格 5 大 Tab 游戏单页 UI (Dashboard, Roster, Market, Match, Rankings)
-├── index.css                    # HLTV 击杀流与电竞暗黑视觉样式
-├── index.js                     # CS 经济演算、HLTV Kill Feed 比赛引擎、转会交易与 LocalStorage 存档
-└── README.md                    # 项目说明文档
-```
-
----
-
-## 📜 许可协议 (License)
-
-本项目基于 [MIT License](LICENSE) 开源许可发布。
+- **GitHub 仓库**: `https://github.com/marcuslzy0103-bit/CSGO-ESPORT`
+- **Live Demo 在线试玩**: `https://marcuslzy0103-bit.github.io/CSGO-ESPORT/`
