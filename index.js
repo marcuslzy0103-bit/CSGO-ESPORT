@@ -430,18 +430,26 @@ window.enterTournament = function(tourneyId) {
 };
 
 /* ==========================================================================
-   7. 2D COURT ENGINE — 2D BWF 球场物理与实时观战引擎
+   7. 2D COURT ENGINE — 2D BWF 实时羽毛球物理与 60FPS 观战引擎
    ========================================================================== */
 let courtCanvas = null;
 let courtCtx = null;
 let courtAnimationId = null;
 
 let courtEntities = {
-  myPlayer: { x: 400, y: 350, targetX: 400, targetY: 350, color: '#10b981' },
-  oppPlayer: { x: 400, y: 100, targetX: 400, targetY: 100, color: '#f43f5e' },
-  shuttle: { x: 400, y: 225, z: 0, vx: 0, vy: 0, vz: 0, state: 'IDLE' },
-  smashSpeed: 0,
-  hawkEye: { active: false, result: 'IN' }
+  myPlayer: { x: 400, y: 340, targetX: 400, targetY: 340, color: '#10b981', swingAnim: 0 },
+  oppPlayer: { x: 400, y: 110, targetX: 400, targetY: 110, color: '#f43f5e', swingAnim: 0 },
+  shuttle: {
+    x: 400, y: 225, z: 0,
+    startX: 400, startY: 225,
+    targetX: 400, targetY: 225,
+    progress: 1, speed: 0.04,
+    arcHeight: 50,
+    isSmash: false,
+    trail: []
+  },
+  lastShotName: '',
+  smashSpeed: 0
 };
 
 function initBadmintonCanvas() {
@@ -449,7 +457,65 @@ function initBadmintonCanvas() {
   if (!courtCanvas) return;
   courtCtx = courtCanvas.getContext('2d');
   if (!courtAnimationId) {
-    requestAnimationFrame(courtLoop);
+    courtAnimationId = requestAnimationFrame(courtLoop);
+  }
+}
+
+function triggerShuttleShot(fromSide, shotType) {
+  const s = courtEntities.shuttle;
+  const myP = courtEntities.myPlayer;
+  const oppP = courtEntities.oppPlayer;
+
+  s.startX = s.x;
+  s.startY = s.y;
+  s.progress = 0;
+  s.trail = [];
+
+  const minX = 205, maxX = 595;
+  const nearMinY = 240, nearMaxY = 380;
+  const farMinY = 60, farMaxY = 210;
+
+  if (fromSide === 'MY') { // 我方击球，打往远场对手半场
+    myP.targetX = Math.max(minX, Math.min(maxX, s.x + (Math.random() * 60 - 30)));
+    myP.targetY = Math.max(nearMinY, Math.min(nearMaxY, s.y + (Math.random() * 40 - 20)));
+    myP.swingAnim = 1;
+
+    s.targetX = Math.floor(Math.random() * (maxX - minX)) + minX;
+    s.targetY = Math.floor(Math.random() * (farMaxY - farMinY)) + farMinY;
+    oppP.targetX = s.targetX;
+    oppP.targetY = s.targetY;
+  } else { // 对手击球，打往近场我方半场
+    oppP.targetX = Math.max(minX, Math.min(maxX, s.x + (Math.random() * 60 - 30)));
+    oppP.targetY = Math.max(farMinY, Math.min(farMaxY, s.y + (Math.random() * 40 - 20)));
+    oppP.swingAnim = 1;
+
+    s.targetX = Math.floor(Math.random() * (maxX - minX)) + minX;
+    s.targetY = Math.floor(Math.random() * (nearMaxY - nearMinY)) + nearMinY;
+    myP.targetX = s.targetX;
+    myP.targetY = s.targetY;
+  }
+
+  // 抛物线与速度参数设置
+  if (shotType === 'SMASH') {
+    s.isSmash = true;
+    s.speed = 0.07;
+    s.arcHeight = 25; // 陡峭急速直线压低
+    courtEntities.lastShotName = `💥 418 km/h 陡峭重杀!`;
+  } else if (shotType === 'CLEAR') {
+    s.isSmash = false;
+    s.speed = 0.03;
+    s.arcHeight = 110; // 深弧线高远球
+    courtEntities.lastShotName = `🏸 底线高远球压深`;
+  } else if (shotType === 'DROP') {
+    s.isSmash = false;
+    s.speed = 0.04;
+    s.arcHeight = 45; // 过网贴网急坠
+    courtEntities.lastShotName = `🎾 网前精妙搓球`;
+  } else {
+    s.isSmash = false;
+    s.speed = 0.05;
+    s.arcHeight = 35; // 平抽快挡
+    courtEntities.lastShotName = `⚡ 中场平抽快挡`;
   }
 }
 
@@ -460,16 +526,17 @@ function simulateBadmintonPoint() {
   const p = gameState.player;
   const myOvr = Math.round((p.stats.smash + p.stats.footwork + p.stats.netTouch + p.stats.stamina) / 4);
 
-  // 算力胜率判定
   const winProb = Math.max(0.15, Math.min(0.85, (myOvr + (p.racketBoosts.smash || 0)) / (myOvr + m.oppOvr)));
   const myWonPoint = Math.random() < winProb;
 
-  // 动作类型：高远球 Clear, 重杀 Smash, 吊球 Drop
-  const shotTypes = ['SMASH', 'CLEAR', 'DROP', 'NET'];
+  const shotTypes = ['SMASH', 'CLEAR', 'DROP', 'DRIVE'];
   const shot = shotTypes[Math.floor(Math.random() * shotTypes.length)];
 
+  // 触发 2D 画布真实羽毛球飞行与跑位轨迹！
+  triggerShuttleShot(myWonPoint ? 'MY' : 'OPP', shot);
+
   if (shot === 'SMASH' && myWonPoint) {
-    const speed = Math.floor(Math.random() * 40) + 380; // 380 - 420 km/h 杀球!
+    const speed = Math.floor(Math.random() * 40) + 380;
     courtEntities.smashSpeed = speed;
     const banner = document.getElementById('smash-speed-banner');
     if (banner) {
@@ -479,7 +546,6 @@ function simulateBadmintonPoint() {
     }
   }
 
-  // 鹰眼挑战概率触发 (5% 压线分)
   if (Math.random() < 0.08) {
     const hawkeyeResult = Math.random() < 0.6 ? 'IN! (界内压线 1.8mm)' : 'OUT! (界外出界 3.2mm)';
     const hawkeyeBanner = document.getElementById('hawkeye-banner');
@@ -499,7 +565,6 @@ function simulateBadmintonPoint() {
     m.killLog.unshift(`⚠️ 对手 ${m.oppName} 底线突击直线杀球得分。`);
   }
 
-  // 21 分制与 Deuce 判定 (先达 21 分且净胜 2 分)
   if ((m.myScore >= 21 || m.oppScore >= 21) && Math.abs(m.myScore - m.oppScore) >= 2) {
     if (m.myScore > m.oppScore) m.mySets++;
     else m.oppSets++;
@@ -525,7 +590,7 @@ function autoPlayMatch() {
   autoMatchInterval = setInterval(() => {
     if (gameState.currentMatch.isFinished) stopAutoMatch();
     else simulateBadmintonPoint();
-  }, 160);
+  }, 220);
 }
 
 function stopAutoMatch() {
@@ -559,16 +624,52 @@ function finishBadmintonMatch() {
 
 function courtLoop() {
   if (courtCtx && courtCanvas) {
+    updateCourtPhysics();
     drawBwfCourtScene();
   }
-  requestAnimationFrame(courtLoop);
+  courtAnimationId = requestAnimationFrame(courtLoop);
+}
+
+function updateCourtPhysics() {
+  const myP = courtEntities.myPlayer;
+  const oppP = courtEntities.oppPlayer;
+  const s = courtEntities.shuttle;
+
+  // 1. 球员平滑步法移动 (Lerp interpolation)
+  myP.x += (myP.targetX - myP.x) * 0.12;
+  myP.y += (myP.targetY - myP.y) * 0.12;
+
+  oppP.x += (oppP.targetX - oppP.x) * 0.12;
+  oppP.y += (oppP.targetY - oppP.y) * 0.12;
+
+  // 微小的准备动作双脚颠抖 bounce
+  const time = Date.now() * 0.005;
+  myP.y += Math.sin(time) * 0.2;
+  oppP.y += Math.sin(time + 1) * 0.2;
+
+  // 挥拍动画渐隐
+  if (myP.swingAnim > 0) myP.swingAnim -= 0.05;
+  if (oppP.swingAnim > 0) oppP.swingAnim -= 0.05;
+
+  // 2. 羽毛球抛物线飞行插值
+  if (s.progress < 1) {
+    s.progress = Math.min(1, s.progress + s.speed);
+
+    s.x = s.startX + (s.targetX - s.startX) * s.progress;
+    s.y = s.startY + (s.targetY - s.startY) * s.progress;
+    s.z = Math.sin(s.progress * Math.PI) * s.arcHeight;
+
+    // 记录拖尾物理轨迹
+    s.trail.push({ x: s.x, y: s.y, z: s.z });
+    if (s.trail.length > 10) s.trail.shift();
+  }
 }
 
 function drawBwfCourtScene() {
   const w = courtCanvas.width;
   const h = courtCanvas.height;
 
-  // 1. BWF 标志性绿地胶背景
+  // 1. BWF 标志性绿色地胶背景
   courtCtx.fillStyle = '#047857';
   courtCtx.fillRect(0, 0, w, h);
 
@@ -591,8 +692,8 @@ function drawBwfCourtScene() {
   courtCtx.moveTo(cx, midY + 45); courtCtx.lineTo(cx + cw, midY + 45); // 前发球线 (下)
   courtCtx.stroke();
 
-  // 3. 绘制中间网 (Net)
-  courtCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+  // 3. 绘制中间白网 (Net)
+  courtCtx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
   courtCtx.lineWidth = 4;
   courtCtx.beginPath();
   courtCtx.moveTo(cx - 15, midY); courtCtx.lineTo(cx + cw + 15, midY);
@@ -603,38 +704,93 @@ function drawBwfCourtScene() {
   courtCtx.fillRect(cx - 18, midY - 6, 8, 12);
   courtCtx.fillRect(cx + cw + 10, midY - 6, 8, 12);
 
-  // 4. 绘制球员圆点 (近场我方 🟢，远场对手 🔴)
+  // 4. 绘制羽毛球地面阴影 & 飞行轨迹 lines (Smash / Trail)
+  const s = courtEntities.shuttle;
+
+  // 绘制抛物线拖尾 Lines
+  if (s.trail.length > 1) {
+    courtCtx.beginPath();
+    courtCtx.moveTo(s.trail[0].x, s.trail[0].y - s.trail[0].z);
+    for (let i = 1; i < s.trail.length; i++) {
+      courtCtx.lineTo(s.trail[i].x, s.trail[i].y - s.trail[i].z);
+    }
+    courtCtx.strokeStyle = s.isSmash ? '#fbbf24' : 'rgba(254, 240, 138, 0.6)';
+    courtCtx.lineWidth = s.isSmash ? 4 : 2;
+    if (s.isSmash) {
+      courtCtx.shadowColor = '#f59e0b';
+      courtCtx.shadowBlur = 15;
+    }
+    courtCtx.stroke();
+    courtCtx.shadowBlur = 0;
+  }
+
+  // 羽毛球地面阴影
+  const shadowSize = Math.max(2, 6 - s.z * 0.04);
+  courtCtx.beginPath();
+  courtCtx.ellipse(s.x, s.y, shadowSize * 1.5, shadowSize, 0, 0, Math.PI * 2);
+  courtCtx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+  courtCtx.fill();
+
+  // 5. 绘制空中羽毛球 (飞行高程 y - z)
+  courtCtx.beginPath();
+  courtCtx.arc(s.x, s.y - s.z, 6, 0, Math.PI * 2);
+  courtCtx.fillStyle = s.isSmash ? '#f59e0b' : '#ffffff';
+  courtCtx.shadowColor = s.isSmash ? '#f59e0b' : '#fef08a';
+  courtCtx.shadowBlur = 10;
+  courtCtx.fill();
+  courtCtx.shadowBlur = 0;
+  courtCtx.lineWidth = 1; courtCtx.strokeStyle = '#93c5fd'; courtCtx.stroke();
+
+  // 6. 绘制球员圆点 (近场我方 🟢，远场对手 🔴)
   const my = courtEntities.myPlayer;
   const opp = courtEntities.oppPlayer;
 
-  // 近场我方圆点
+  // 近场我方圆点 & 挥拍光圈
+  if (my.swingAnim > 0) {
+    courtCtx.beginPath();
+    courtCtx.arc(my.x, my.y, 22 * (1 - my.swingAnim), 0, Math.PI * 2);
+    courtCtx.strokeStyle = `rgba(16, 185, 129, ${my.swingAnim})`;
+    courtCtx.lineWidth = 2; courtCtx.stroke();
+  }
   courtCtx.beginPath();
-  courtCtx.arc(my.x, my.y, 10, 0, Math.PI * 2);
+  courtCtx.arc(my.x, my.y, 11, 0, Math.PI * 2);
   courtCtx.fillStyle = '#10b981';
-  courtCtx.shadowColor = '#10b981'; courtCtx.shadowBlur = 12;
+  courtCtx.shadowColor = '#10b981'; courtCtx.shadowBlur = 14;
   courtCtx.fill(); courtCtx.shadowBlur = 0;
-  courtCtx.lineWidth = 2; courtCtx.strokeStyle = '#ffffff'; courtCtx.stroke();
+  courtCtx.lineWidth = 2.5; courtCtx.strokeStyle = '#ffffff'; courtCtx.stroke();
 
-  // 远场对手圆点
+  // 远场对手圆点 & 挥拍光圈
+  if (opp.swingAnim > 0) {
+    courtCtx.beginPath();
+    courtCtx.arc(opp.x, opp.y, 22 * (1 - opp.swingAnim), 0, Math.PI * 2);
+    courtCtx.strokeStyle = `rgba(244, 63, 94, ${opp.swingAnim})`;
+    courtCtx.lineWidth = 2; courtCtx.stroke();
+  }
   courtCtx.beginPath();
-  courtCtx.arc(opp.x, opp.y, 10, 0, Math.PI * 2);
+  courtCtx.arc(opp.x, opp.y, 11, 0, Math.PI * 2);
   courtCtx.fillStyle = '#f43f5e';
-  courtCtx.shadowColor = '#f43f5e'; courtCtx.shadowBlur = 12;
+  courtCtx.shadowColor = '#f43f5e'; courtCtx.shadowBlur = 14;
   courtCtx.fill(); courtCtx.shadowBlur = 0;
-  courtCtx.lineWidth = 2; courtCtx.strokeStyle = '#ffffff'; courtCtx.stroke();
+  courtCtx.lineWidth = 2.5; courtCtx.strokeStyle = '#ffffff'; courtCtx.stroke();
 
-  // 5. 绘制羽毛球白点
-  courtCtx.beginPath();
-  courtCtx.arc(w / 2, h / 2, 5, 0, Math.PI * 2);
-  courtCtx.fillStyle = '#fef08a';
-  courtCtx.shadowColor = '#fef08a'; courtCtx.shadowBlur = 8;
-  courtCtx.fill(); courtCtx.shadowBlur = 0;
+  // 7. 绘制球场上方击球特效 Banner
+  if (courtEntities.lastShotName) {
+    courtCtx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+    courtCtx.fillRect(cx + 60, cy + 10, 320, 24);
+    courtCtx.strokeStyle = '#f59e0b'; courtCtx.lineWidth = 1;
+    courtCtx.strokeRect(cx + 60, cy + 10, 320, 24);
 
-  // 水印标题
+    courtCtx.fillStyle = '#fbbf24';
+    courtCtx.font = 'bold 12px monospace';
+    courtCtx.textAlign = 'center';
+    courtCtx.fillText(courtEntities.lastShotName, cx + 220, cy + 26);
+  }
+
+  // 8. 绘制水印标题
   courtCtx.fillStyle = 'rgba(255,255,255,0.4)';
-  courtCtx.font = 'bold 12px monospace';
+  courtCtx.font = 'bold 11px monospace';
   courtCtx.textAlign = 'left';
-  courtCtx.fillText('BWF OFFICIAL 2D COURT OBSERVER', 20, 25);
+  courtCtx.fillText('BWF 60FPS REAL-TIME OBSERVER', 20, 25);
 }
 
 /* ==========================================================================
