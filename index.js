@@ -365,17 +365,17 @@ window.subStatPoint = function(statKey) {
 };
 
 /* ==========================================================================
-   6. TOURNAMENT SYSTEM — 自由比赛报名系统
+   6. TOURNAMENT SYSTEM — 自由比赛报名系统 (年龄门槛严格判定)
    ========================================================================== */
 const TOURNAMENTS = [
-  { id: 'j1', name: '🌱 社区少儿羽毛球公开赛', reqAge: 12, reqRank: 999, fee: 50, prize: 300, pts: 500, region: '本地' },
-  { id: 'j2', name: '👦 全国中学生羽毛球锦标赛', reqAge: 18, reqRank: 999, fee: 200, prize: 1500, pts: 1500, region: '全国' },
-  { id: 'b1', name: '🌍 BWF 国际挑战赛 (International Challenge)', reqAge: 16, reqRank: 500, fee: 400, prize: 3000, pts: 3500, region: '亚洲/欧洲' },
-  { id: 'b2', name: '🟢 BWF Super 300 (德国公开赛)', reqAge: 17, reqRank: 200, fee: 800, prize: 12000, pts: 7000, region: '🇩🇪 德国' },
-  { id: 'b3', name: '🟡 BWF Super 500 (韩国公开赛)', reqAge: 18, reqRank: 100, fee: 1500, prize: 25000, pts: 9200, region: '🇰🇷 韩国' },
-  { id: 'b4', name: '🔵 BWF Super 750 (日本公开赛)', reqAge: 18, reqRank: 50, fee: 3000, prize: 50000, pts: 11000, region: '🇯🇵 日本' },
-  { id: 'b5', name: '🏆 BWF Super 1000 (全英公开赛 All England)', reqAge: 18, reqRank: 32, fee: 5000, prize: 120000, pts: 12000, region: '🇬🇧 英国' },
-  { id: 'b6', name: '🥇 奥运会羽毛球男单比赛 (Olympic Games)', reqAge: 18, reqRank: 16, fee: 0, prize: 250000, pts: 15000, region: '🇫🇷 巴黎' },
+  { id: 'j1', name: '🌱 社区少儿羽毛球公开赛', minAge: 7, maxAge: 12, reqRank: 999, fee: 50, prize: 300, pts: 500, region: '本地' },
+  { id: 'j2', name: '👦 全国中学生羽毛球锦标赛', minAge: 13, maxAge: 18, reqRank: 999, fee: 200, prize: 1500, pts: 1500, region: '全国' },
+  { id: 'b1', name: '🌍 BWF 国际挑战赛 (International Challenge)', minAge: 16, maxAge: 99, reqRank: 500, fee: 400, prize: 3000, pts: 3500, region: '亚洲/欧洲' },
+  { id: 'b2', name: '🟢 BWF Super 300 (德国公开赛)', minAge: 17, maxAge: 99, reqRank: 200, fee: 800, prize: 12000, pts: 7000, region: '🇩🇪 德国' },
+  { id: 'b3', name: '🟡 BWF Super 500 (韩国公开赛)', minAge: 18, maxAge: 99, reqRank: 100, fee: 1500, prize: 25000, pts: 9200, region: '🇰🇷 韩国' },
+  { id: 'b4', name: '🔵 BWF Super 750 (日本公开赛)', minAge: 18, maxAge: 99, reqRank: 50, fee: 3000, prize: 50000, pts: 11000, region: '🇯🇵 日本' },
+  { id: 'b5', name: '🏆 BWF Super 1000 (全英公开赛 All England)', minAge: 18, maxAge: 99, reqRank: 32, fee: 5000, prize: 120000, pts: 12000, region: '🇬🇧 英国' },
+  { id: 'b6', name: '🥇 奥运会羽毛球男单比赛 (Olympic Games)', minAge: 18, maxAge: 99, reqRank: 16, fee: 0, prize: 250000, pts: 15000, region: '🇫🇷 巴黎' },
 ];
 
 window.enterTournament = function(tourneyId) {
@@ -383,8 +383,9 @@ window.enterTournament = function(tourneyId) {
   if (!tourney) return;
   const p = gameState.player;
 
+  if (p.ageYears < tourney.minAge) { showToast(`👶 你只有 ${p.ageYears} 岁，未达到参赛最低年龄 (${tourney.minAge} 岁)！`); return; }
+  if (p.ageYears > tourney.maxAge) { showToast(`你已超龄 (${p.ageYears} 岁)，无法报名 ${tourney.maxAge} 岁限制组比赛！`); return; }
   if (p.funds < tourney.fee) { showToast(`资金不足！报名需要 $${tourney.fee}。`); return; }
-  if (p.ageYears > tourney.reqAge && tourney.reqAge <= 18) { showToast('超龄无法参加该少儿/中学生组比赛！'); return; }
   if (p.rank > tourney.reqRank) { showToast(`BWF 排名不足！需要排名世界前 #${tourney.reqRank}。`); return; }
 
   p.funds -= tourney.fee;
@@ -661,15 +662,39 @@ function renderHeader() {
   setEl('header-rank', `#${p.rank} WORLD`);
 }
 
+const STAGE_LABELS = {
+  CHILDHOOD: '👶 0~6 岁 · 幼年启蒙期 (CHILDHOOD)',
+  PRIMARY:   '👦 7~12 岁 · 少儿比赛期 (PRIMARY SCHOOL)',
+  JUNIOR:    '🏸 13~17 岁 · 国青试训期 (JUNIOR SQUAD)',
+  PRO:       '🏆 18~32 岁 · BWF 职业巡回赛 (PRO TOUR)',
+  VETERAN:   '🏅 33+ 岁 · 名人堂老将期 (LEGEND VETERAN)'
+};
+
+const STAGE_DESCS = {
+  CHILDHOOD: '你尚在幼年学步阶段，身体发育受限制（属性上限 25 点），无法参加正式羽毛球比赛。请快进时间长到 7 岁入学少儿组！',
+  PRIMARY:   '你进入了小学并加入羽毛球社团，属性上限提升至 50 点。可以自由报名【社区少儿公开赛】体验首场羽毛球实战！',
+  JUNIOR:    '你入选了国家青年队，属性上限提升至 75 点。准备参加全国中学生锦标赛与世青赛 (WJBC)！',
+  PRO:       '你进入了成年 BWF 职业巡回赛，属性上限全面解禁至 99 点！报名 S300/S500/S750/S1000 与奥运会，冲刺世界第一！',
+  VETERAN:   '你是羽毛球界的传奇老将，虽然体能有些许下滑，但丰厚的经验与假动作依旧独步天下。'
+};
+
 function renderDashboard() {
   const p = gameState.player;
+  setEl('dash-stage-title', STAGE_LABELS[p.stage] || `${p.ageYears} 岁`);
+  setEl('dash-stage-desc', STAGE_DESCS[p.stage] || '');
+
   setEl('dash-week-num', p.ageWeeks);
   setEl('dash-age-display', `${p.ageYears} 岁 ${p.ageWeeks} 周`);
 
   const ovr = Math.round((p.stats.smash + p.stats.footwork + p.stats.netTouch + p.stats.stamina) / 4);
   setEl('dash-ovr-display', `${ovr} OVR`);
   setEl('dash-racket-display', p.racket);
+
+  // 准确计算胜率与冠军数 (修复重生后胜率残留 Bug)
+  const totalMatches = p.wins + p.losses;
+  const winRate = totalMatches > 0 ? ((p.wins / totalMatches) * 100).toFixed(1) : '0.0';
   setEl('dash-record-display', `${p.wins} 胜 - ${p.losses} 负`);
+  setEl('dash-record-sub', `胜率 ${winRate}% | 冠军奖杯: ${p.trophies ? p.trophies.length : 0}`);
 
   // 属性快照
   const snapshot = el('dash-stats-snapshot');
@@ -726,16 +751,33 @@ function renderStats() {
 }
 
 function renderTournaments() {
-  setEl('tourney-funds-display', `$${gameState.player.funds.toLocaleString()}`);
-  setEl('tourney-rank-display', `#${gameState.player.rank}`);
+  const p = gameState.player;
+  setEl('tourney-funds-display', `$${p.funds.toLocaleString()}`);
+  setEl('tourney-rank-display', `#${p.rank}`);
   const grid = el('tournaments-grid');
   if (!grid) return;
 
+  if (p.ageYears < 7) {
+    grid.innerHTML = `<div class="col-span-2 p-8 rounded-xl bg-slate-950 border border-amber-500/30 text-center space-y-3 font-mono">
+      <div class="text-4xl">👶</div>
+      <div class="text-amber-400 font-extrabold text-sm">尚在幼年启蒙阶段 (${p.ageYears} 岁)</div>
+      <p class="text-slate-400 text-xs max-w-md mx-auto">你目前还在吮指头和拿玩具拍挥挥手阶段，无法报名参加正式比赛！请在面板使用【推进 1 年】或【直达 18 岁】长到 7 岁以上解锁少儿比赛。</p>
+    </div>`;
+    return;
+  }
+
   grid.innerHTML = TOURNAMENTS.map(t => {
-    const isAgeOk = gameState.player.ageYears <= t.reqAge || t.reqAge > 18;
-    const isRankOk = gameState.player.rank <= t.reqRank;
-    const isFundsOk = gameState.player.funds >= t.fee;
-    const canEnter = isAgeOk && isRankOk && isFundsOk;
+    const isMinAgeOk = p.ageYears >= t.minAge;
+    const isMaxAgeOk = p.ageYears <= t.maxAge;
+    const isRankOk = p.rank <= t.reqRank;
+    const isFundsOk = p.funds >= t.fee;
+    const canEnter = isMinAgeOk && isMaxAgeOk && isRankOk && isFundsOk;
+
+    let reason = '';
+    if (!isMinAgeOk) reason = `需满 ${t.minAge} 岁 (当前 ${p.ageYears} 岁)`;
+    else if (!isMaxAgeOk) reason = `超龄 (需 ≤ ${t.maxAge} 岁)`;
+    else if (!isRankOk) reason = `排名不足 (需前 #${t.reqRank})`;
+    else if (!isFundsOk) reason = `资金不足 (需 $${t.fee})`;
 
     return `<div class="rounded-xl bg-bwf-card border border-slate-800 p-5 space-y-4 font-mono text-xs shadow-xl">
       <div class="flex items-center justify-between border-b border-slate-800 pb-2">
@@ -745,11 +787,11 @@ function renderTournaments() {
       <div class="grid grid-cols-2 gap-2 text-[11px] bg-slate-950 p-2.5 rounded-lg border border-slate-800">
         <div>地区: <strong class="text-slate-200">${t.region}</strong></div>
         <div>报名费: <strong class="text-emerald-400">$${t.fee}</strong></div>
-        <div>年龄要求: <strong class="${isAgeOk ? 'text-emerald-400' : 'text-rose-400'}">≤ ${t.reqAge} 岁</strong></div>
+        <div>年龄门槛: <strong class="${isMinAgeOk && isMaxAgeOk ? 'text-emerald-400' : 'text-rose-400'}">${t.minAge} ~ ${t.maxAge === 99 ? '无上限' : t.maxAge} 岁</strong></div>
         <div>排名要求: <strong class="${isRankOk ? 'text-emerald-400' : 'text-rose-400'}">前 #${t.reqRank}</strong></div>
       </div>
       <button onclick="enterTournament('${t.id}')" class="w-full py-2.5 rounded-lg ${canEnter ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950' : 'bg-slate-800 text-slate-500 cursor-not-allowed'} font-bold transition-all" ${canEnter ? '' : 'disabled'}>
-        ${canEnter ? '✈️ 报名出征该比赛' : '⚠️ 条件未满足无法报名'}
+        ${canEnter ? '✈️ 报名出征该比赛' : `⚠️ ${reason}`}
       </button>
     </div>`;
   }).join('');
