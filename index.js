@@ -106,17 +106,16 @@ function migrateState() {
   if (p.statPoints === undefined) p.statPoints = 8;
   if (!p.trophies) p.trophies = [];
 
-  // 修复过往存档：按年龄自动修正属性超出天花板的问题，返还多余 TP
+  // 修复过往存档：按年龄自动修正属性超出天花板的问题，并限制最大可用 TP 为 50 点
   const cap = getAgeStatCap(p.ageYears);
   if (p.stats) {
     Object.keys(p.stats).forEach(statKey => {
       if (p.stats[statKey] > cap) {
-        const excess = p.stats[statKey] - cap;
         p.stats[statKey] = cap;
-        p.statPoints += excess; // 返还多余的 TP 点数
       }
     });
   }
+  if (p.statPoints > 50) p.statPoints = 35; // 自动修复膨胀的 800+ 点数为合理的 35 TP
 }
 
 function showToast(msg) {
@@ -236,7 +235,8 @@ function getStatCost(currentVal) {
 
 function advanceWeeks(count = 1, silent = false) {
   const p = gameState.player;
-  
+  let tpGained = 0;
+
   for (let i = 0; i < count; i++) {
     p.ageWeeks++;
     if (p.ageWeeks >= 52) {
@@ -252,16 +252,23 @@ function advanceWeeks(count = 1, silent = false) {
     else if (p.ageYears < 33) p.stage = 'PRO';
     else p.stage = 'VETERAN';
 
-    p.statPoints += 1;
-    if (!silent && Math.random() < 0.2) triggerRandomLifeEvent();
+    // 每 4 周 (1 个月) 获得 1 TP 属性点，防止 TP 暴涨破表
+    if (p.ageWeeks % 4 === 0) {
+      if (p.statPoints < 50) { // 限制可用 TP 最大存量 50
+        p.statPoints++;
+        tpGained++;
+      }
+    }
+
+    if (!silent && Math.random() < 0.15) triggerRandomLifeEvent();
   }
 
   if (!silent) {
     if (count > 1) {
-      p.eventLog.unshift(`🚀 闭关修炼了 ${count} 周！获得了 +${count} 可用属性点 (TP)！`);
-      showToast(`⚡ 快速推进了 ${count} 周！积累 +${count} TP！`);
+      p.eventLog.unshift(`🚀 闭关修炼了 ${count} 周！获得了 +${tpGained} 可用属性点 (TP)！`);
+      showToast(`⚡ 快速推进了 ${count} 周！积累 +${tpGained} TP！`);
     } else {
-      p.eventLog.unshift(`🏋️ 第 ${p.ageWeeks} 周特训完成：获得了 +1 可用属性点 (TP)！`);
+      if (tpGained > 0) showToast(`🏋️ 特训 1 周完成：获得了 +1 可用属性点 (TP)！`);
     }
   }
 
@@ -272,12 +279,23 @@ function skipToAge18() {
   const p = gameState.player;
   if (p.ageYears >= 18) { showToast('你已经达到或超过 18 岁成年期！'); return; }
 
-  const remainingYears = 18 - p.ageYears;
-  const remainingWeeks = remainingYears * 52 - p.ageWeeks;
+  // 年龄直接跨越到 18 岁
+  p.ageYears = 18;
+  p.ageWeeks = 0;
+  p.stage = 'PRO';
 
-  advanceWeeks(remainingWeeks, true);
-  p.eventLog.unshift(`⚡ 开启【一键直达 18 岁成年期】！顺利进入成年 BWF 职业巡回赛战场，获得 +${remainingWeeks} TP 点数！`);
-  showToast(`⚡ 一键直达 18 岁成年期！获得了 +${remainingWeeks} TP 属性点！`);
+  // 青少年身体自然基础成长 (平均提升至 40 点)
+  const cap = getAgeStatCap(18);
+  Object.keys(p.stats).forEach(k => {
+    if (p.stats[k] < 40) p.stats[k] = 40;
+  });
+
+  // 给予合理平衡的 25 点自由属性加点 (而不是 880+ 破表点数)
+  p.statPoints = 25;
+
+  p.eventLog.unshift(`⚡ 开启【直达 18 岁成年期】！身体自然成长至 40 OVR 基础，获得 25 自由加点 TP，正式进军 BWF 职业巡回赛！`);
+  showToast(`⚡ 直达 18 岁成年期！获得 25 点自由属性加点 (TP)！`);
+  saveGame(); renderAll();
 }
 
 function toggleAutoTrain() {
