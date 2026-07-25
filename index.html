@@ -186,7 +186,7 @@
         <div class="rounded-xl bg-cs-card border border-slate-800 p-5 shadow-xl">
           <div class="font-mono text-xs text-slate-400 mb-1">月度薪资支出 (Monthly Salary)</div>
           <div id="dash-monthly-salary" class="text-2xl font-extrabold font-mono text-rose-400">$18,500</div>
-          <div class="mt-2 text-[11px] text-slate-500 font-mono">5 名选手与教练工资总和</div>
+          <div class="mt-2 text-[11px] text-slate-500 font-mono">包含首发与替补选手月薪</div>
         </div>
       </div>
 
@@ -196,7 +196,7 @@
         <div class="lg:col-span-7 rounded-xl bg-cs-card border border-slate-800 p-6 shadow-xl space-y-4">
           <div class="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 class="font-mono text-sm font-bold text-white flex items-center gap-2">
-              <span>🎯 5 人首发首发阵容 (Lineup)</span>
+              <span>🎯 5 人首发阵容 (Lineup)</span>
             </h3>
             <button data-tab-goto="roster" class="font-mono text-xs text-amber-400 hover:underline">管理阵容 &gt;</button>
           </div>
@@ -246,18 +246,30 @@
         </div>
       </div>
 
-      <!-- 首发阵容 5 人卡片 Granular View -->
-      <div id="roster-full-cards" class="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <!-- 5 个选手的属性卡片动态渲染 -->
+      <!-- 首发阵容 5 人卡片 -->
+      <div class="space-y-3">
+        <h3 class="font-mono text-xs font-bold text-amber-400 uppercase tracking-wider">🎯 5 人首发名册 (Starting Roster)</h3>
+        <div id="roster-full-cards" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <!-- 5 个选手的属性卡片动态渲染 -->
+        </div>
+      </div>
+
+      <!-- 战队替补席 (Bench & Substitutes) -->
+      <div class="rounded-xl bg-cs-card border border-slate-800 p-5 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h3 class="font-mono text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-2">
+            <span>🪑 战队替补席 (BENCH & SUBSTITUTES)</span>
+          </h3>
+          <span class="font-mono text-[10px] text-slate-500">被替换选手将暂留替补席</span>
+        </div>
+
+        <div id="bench-list" class="space-y-3">
+          <!-- 动态渲染替补席 -->
+        </div>
       </div>
 
     </div>
 
-      <!-- BENCH SECTION -->
-      <div class="border-t border-slate-800 pt-4 mt-6">
-        <h3 class="text-lg font-extrabold text-white mb-3">🪑 替补席 (BENCH)</h3>
-        <div id="bench-list" class="space-y-2"></div>
-      </div>
 
     <!-- ==========================================================================
          TAB 3: 🛒 选手转会市场 (TRANSFER MARKET)
@@ -297,8 +309,14 @@
             <span class="font-mono text-xs font-bold text-slate-300">LIVE MATCH SIMULATION // MR12 FORMAT</span>
           </div>
 
-          <div class="font-mono text-xs text-amber-400 font-bold" id="match-map-title">
-            DE_INFERNO (地图：香草小镇)
+          <!-- 地图 BP 禁选与比赛地图 -->
+          <div class="text-right font-mono text-xs">
+            <div id="match-map-name" class="text-amber-400 font-bold">
+              DE_INFERNO (CT vs T)
+            </div>
+            <div id="match-ban-info" class="text-[10px] text-slate-500 mt-0.5">
+              BAN: de_vertigo, de_dust2
+            </div>
           </div>
         </div>
 
@@ -309,9 +327,9 @@
           <div class="col-span-5 flex items-center justify-end gap-4">
             <div class="text-right">
               <div id="match-my-team-name" class="font-extrabold text-lg sm:text-2xl text-cs-ct">CYBER WOLVES</div>
-              <div class="font-mono text-xs text-slate-400">SIDE: CT (防守方)</div>
+              <div class="font-mono text-xs text-slate-400" id="match-my-side-text">SIDE: CT (防守方)</div>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-cs-ct/20 border border-cs-ct/40 flex items-center justify-center font-extrabold text-cs-ct font-mono text-lg">
+            <div class="w-12 h-12 rounded-xl bg-cs-ct/20 border border-cs-ct/40 flex items-center justify-center font-extrabold text-cs-ct font-mono text-lg" id="badge-my-side">
               CT
             </div>
           </div>
@@ -328,12 +346,12 @@
 
           <!-- T / 对手战队 -->
           <div class="col-span-5 flex items-center justify-start gap-4">
-            <div class="w-12 h-12 rounded-xl bg-cs-t/20 border border-cs-t/40 flex items-center justify-center font-extrabold text-cs-t font-mono text-lg">
+            <div class="w-12 h-12 rounded-xl bg-cs-t/20 border border-cs-t/40 flex items-center justify-center font-extrabold text-cs-t font-mono text-lg" id="badge-opp-side">
               T
             </div>
             <div class="text-left">
               <div id="match-opp-team-name" class="font-extrabold text-lg sm:text-2xl text-cs-t">FAZE CLAN</div>
-              <div class="font-mono text-xs text-slate-400">SIDE: T (进攻方)</div>
+              <div class="font-mono text-xs text-slate-400" id="match-opp-side-text">SIDE: T (进攻方)</div>
             </div>
           </div>
 
@@ -391,12 +409,6 @@
               <span>HLTV LIVE KILL FEED 击杀流日志</span>
             </h3>
             <span class="font-mono text-[10px] text-slate-500">REAL-TIME CS LOG</span>
-          </div>
-
-                    <!-- Map Info -->
-          <div id="map-info-bar" class="flex items-center justify-between mb-2 px-2">
-            <span id="match-map-name" class="text-amber-400 font-bold text-sm">Mirage</span>
-            <span id="match-ban-info" class="text-xs text-slate-500">等待地图BP...</span>
           </div>
 
           <!-- Kill Feed 滚动窗口 -->
