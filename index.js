@@ -102,8 +102,21 @@ function resetToDefault() {
 
 function migrateState() {
   if (!gameState.player) resetToDefault();
-  if (gameState.player.statPoints === undefined) gameState.player.statPoints = 8;
-  if (!gameState.player.trophies) gameState.player.trophies = [];
+  const p = gameState.player;
+  if (p.statPoints === undefined) p.statPoints = 8;
+  if (!p.trophies) p.trophies = [];
+
+  // 修复过往存档：按年龄自动修正属性超出天花板的问题，返还多余 TP
+  const cap = getAgeStatCap(p.ageYears);
+  if (p.stats) {
+    Object.keys(p.stats).forEach(statKey => {
+      if (p.stats[statKey] > cap) {
+        const excess = p.stats[statKey] - cap;
+        p.stats[statKey] = cap;
+        p.statPoints += excess; // 返还多余的 TP 点数
+      }
+    });
+  }
 }
 
 function showToast(msg) {
@@ -188,6 +201,20 @@ function initEvents() {
 /* ==========================================================================
    4. WEEK & AGE PROGRESSION — 周推进与年龄成长系统 (0-38 岁)
    ========================================================================== */
+function getAgeStatCap(ageYears) {
+  if (ageYears <= 6) return 25;   // 👶 0~6 岁童年启蒙：上限 25 点 (幼年身体发育限制)
+  if (ageYears <= 12) return 50;  // 👦 7~12 岁少儿组：上限 50 点
+  if (ageYears <= 17) return 75;  // 🏸 13~17 岁青少年国青队：上限 75 点
+  if (ageYears <= 32) return 99;  // 🏆 18~32 岁职业黄金期：上限 99 点 (成年巅峰)
+  return 90;                       // 🏅 33+ 岁老将期：上限 90 点 (体能随年龄自然衰减)
+}
+
+function getStatCost(currentVal) {
+  if (currentVal >= 75) return 3; // 高阶加点消耗 3 TP
+  if (currentVal >= 50) return 2; // 中阶加点消耗 2 TP
+  return 1;                       // 初阶加点消耗 1 TP
+}
+
 function advanceWeek() {
   const p = gameState.player;
   p.ageWeeks++;
@@ -195,7 +222,7 @@ function advanceWeek() {
   if (p.ageWeeks >= 52) {
     p.ageYears++;
     p.ageWeeks = 0;
-    p.eventLog.unshift(`🎂 祝贺！你的年龄增长到了 ${p.ageYears} 岁！`);
+    p.eventLog.unshift(`🎂 祝贺！你的年龄增长到了 ${p.ageYears} 岁！解锁更高身体上限 (${getAgeStatCap(p.ageYears)} 点)！`);
   }
 
   // 判定年龄阶段
@@ -205,9 +232,9 @@ function advanceWeek() {
   else if (p.ageYears < 33) p.stage = 'PRO';
   else p.stage = 'VETERAN';
 
-  // 周特训获得 TP 加点
-  p.statPoints += 3;
-  p.eventLog.unshift(`🏋️ 第 ${p.ageWeeks} 周特训完成：获得了 +3 可用属性加点 (TP)！`);
+  // 周特训获得合理的 1 TP 加点
+  p.statPoints += 1;
+  p.eventLog.unshift(`🏋️ 第 ${p.ageWeeks} 周特训完成：获得了 +1 可用属性加点 (TP)！`);
 
   // 随机触发羽毛球生活事件
   triggerRandomLifeEvent();
@@ -218,29 +245,45 @@ function advanceWeek() {
 function triggerRandomLifeEvent() {
   const p = gameState.player;
   const roll = Math.random();
+  const cap = getAgeStatCap(p.ageYears);
 
   if (roll < 0.15) {
-    p.funds += 200;
-    p.eventLog.unshift(`💰 获得地方羽协青少年训练津贴 +$200！`);
+    p.funds += 100;
+    p.eventLog.unshift(`💰 获得地方羽协青少年训练津贴 +$100！`);
   } else if (roll < 0.25) {
-    p.stats.footwork = Math.min(99, p.stats.footwork + 1);
-    p.eventLog.unshift(`👟 经过一周多球步法特训，【身法步法】永久 +1！`);
+    if (p.stats.footwork < cap) {
+      p.stats.footwork++;
+      p.eventLog.unshift(`👟 经过一周多球步法特训，【身法步法】永久 +1！`);
+    }
   } else if (roll < 0.35) {
-    p.stats.smash = Math.min(99, p.stats.smash + 1);
-    p.eventLog.unshift(`💥 练习中连续完成 50 次双跳重杀，【杀球爆发力】永久 +1！`);
+    if (p.stats.smash < cap) {
+      p.stats.smash++;
+      p.eventLog.unshift(`💥 练习中连续完成 50 次双跳重杀，【杀球爆发力】永久 +1！`);
+    }
   }
 }
 
 /* ==========================================================================
-   5. STAT ALLOCATION CONTROLLER — 自由属性加点控制器
+   5. STAT ALLOCATION CONTROLLER — 自由属性加点控制器 (带年龄天花板限制)
    ========================================================================== */
 window.addStatPoint = function(statKey) {
   const p = gameState.player;
-  if (p.statPoints < 1) { showToast('可用加点不足！请完成周特训积累 TP。'); return; }
-  if (p.stats[statKey] >= 99) { showToast('该属性已达天花板上限 99！'); return; }
+  const currentVal = p.stats[statKey];
+  const cap = getAgeStatCap(p.ageYears);
+  const cost = getStatCost(currentVal);
+
+  if (currentVal >= cap) {
+    showToast(`👶 你当前只有 ${p.ageYears} 岁 (${p.stage})，幼年身体发育限制该属性上限为 ${cap} 点！请随着年龄增长解锁上限。`);
+    return;
+  }
+
+  if (p.statPoints < cost) {
+    showToast(`可用加点不足！提升此高阶属性需要 ${cost} TP。`);
+    return;
+  }
 
   p.stats[statKey]++;
-  p.statPoints--;
+  p.statPoints -= cost;
   saveGame(); renderAll();
   showToast(`${STAT_DEFS[statKey].name} 提升至 ${p.stats[statKey]}！`);
 };
@@ -248,8 +291,9 @@ window.addStatPoint = function(statKey) {
 window.subStatPoint = function(statKey) {
   const p = gameState.player;
   if (p.stats[statKey] <= 15) return;
+  const cost = getStatCost(p.stats[statKey] - 1);
   p.stats[statKey]--;
-  p.statPoints++;
+  p.statPoints += cost;
   saveGame(); renderAll();
 };
 
@@ -581,28 +625,37 @@ function renderDashboard() {
 
 function renderStats() {
   const p = gameState.player;
-  setEl('stat-tp-display', `${p.statPoints} TP`);
+  const cap = getAgeStatCap(p.ageYears);
+  setEl('stat-tp-display', `${p.statPoints} TP (当前 ${p.ageYears} 岁上限: ${cap} 点)`);
   const grid = el('stat-allocation-cards');
   if (!grid) return;
 
-  grid.innerHTML = Object.entries(STAT_DEFS).map(([key, def]) => `
-    <div class="rounded-xl bg-bwf-card border border-slate-800 p-5 space-y-4 font-mono text-xs shadow-xl hover:border-emerald-500/40 transition-all">
+  grid.innerHTML = Object.entries(STAT_DEFS).map(([key, def]) => {
+    const val = p.stats[key];
+    const cost = getStatCost(val);
+    const isAtCap = val >= cap;
+
+    return `<div class="rounded-xl bg-bwf-card border ${isAtCap ? 'border-amber-500/40' : 'border-slate-800'} p-5 space-y-4 font-mono text-xs shadow-xl hover:border-emerald-500/40 transition-all">
       <div class="flex items-center justify-between border-b border-slate-800 pb-2">
         <span class="font-bold text-white text-sm">${def.name}</span>
-        <strong class="text-lg font-black ${def.color}">${p.stats[key]}</strong>
+        <div class="text-right">
+          <strong class="text-lg font-black ${def.color}">${val}</strong>
+          <span class="text-slate-500 text-[10px]"> / ${cap} Max</span>
+        </div>
       </div>
       <p class="text-slate-400 text-[11px] h-8">${def.desc}</p>
 
       <div class="w-full h-2 rounded-full bg-slate-950 border border-slate-800 overflow-hidden">
-        <div class="h-full bg-gradient-to-r from-emerald-500 to-amber-400 stat-bar-fill" style="width: ${p.stats[key]}%"></div>
+        <div class="h-full bg-gradient-to-r from-emerald-500 to-amber-400 stat-bar-fill" style="width: ${(val / cap) * 100}%"></div>
       </div>
 
       <div class="flex items-center gap-2 pt-2">
-        <button onclick="addStatPoint('${key}')" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-lg shadow-emerald-500/20 transition-all">
-          + 加 1 点 (消耗 1 TP)
+        <button onclick="addStatPoint('${key}')" class="w-full py-2.5 rounded-lg ${isAtCap ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'} font-bold shadow-lg shadow-emerald-500/20 transition-all">
+          ${isAtCap ? `🔒 年龄阶段上限 (${cap}点)` : `+1 点 (消耗 ${cost} TP)`}
         </button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function renderTournaments() {
