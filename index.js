@@ -874,35 +874,56 @@ function resetRadarPositions() {
   const isUserCT = m ? m.mySide === 'CT' : true;
   const opp = m ? getOppProfile(m.opponent) : null;
 
-  const ctNames = isUserCT 
-    ? gameState.roster.map(p => p.name) 
-    : [opp?.star || 'OppStar', 'Enemy2', 'Enemy3', 'Enemy4', 'Enemy5'];
-  
-  const tNames = !isUserCT 
-    ? gameState.roster.map(p => p.name) 
-    : [opp?.star || 'OppStar', 'Enemy2', 'Enemy3', 'Enemy4', 'Enemy5'];
+  const userRoster = gameState.roster;
+  const oppRoster = [
+    { name: opp?.star || 'OppStar', movement: 88, role: 'AWPer' },
+    { name: 'Rifle_Ace', movement: 85, role: 'Entry' },
+    { name: 'Support_Guy', movement: 82, role: 'Support' },
+    { name: 'IGL_Pro', movement: 80, role: 'IGL' },
+    { name: 'Lurk_Master', movement: 86, role: 'Lurker' }
+  ];
 
-  radarEntities.cts = ctNames.map((name, i) => ({
-    id: `ct_${i}`, name, team: 'CT',
-    x: DUST2_ZONES.ctSpawn.x + (Math.random() * 40 - 20),
-    y: DUST2_ZONES.ctSpawn.y + (i * 20 - 40),
-    targetX: DUST2_ZONES.ctSpawn.x,
-    targetY: DUST2_ZONES.ctSpawn.y,
-    angle: 0,
-    hp: 100, isAlive: true,
-    color: '#38bdf8'
-  }));
+  const ctPlayers = isUserCT ? userRoster : oppRoster;
+  const tPlayers = !isUserCT ? userRoster : oppRoster;
 
-  radarEntities.ts = tNames.map((name, i) => ({
-    id: `t_${i}`, name, team: 'T',
-    x: DUST2_ZONES.tSpawn.x + (Math.random() * 40 - 20),
-    y: DUST2_ZONES.tSpawn.y + (i * 20 - 40),
-    targetX: DUST2_ZONES.tSpawn.x,
-    targetY: DUST2_ZONES.tSpawn.y,
-    angle: 0,
-    hp: 100, isAlive: true,
-    color: '#f97316'
-  }));
+  radarEntities.cts = ctPlayers.map((p, i) => {
+    const moveStat = p.movement || 82;
+    // 基于身法 Speed 属性计算真人在地图上的跑步移动速度 (1.5 ~ 3.2 px/frame)
+    const baseSpeed = 1.5 + (moveStat / 100) * 1.7;
+    const speed = p.role === 'AWPer' ? baseSpeed * 0.88 : baseSpeed; // 持狙移动减速
+
+    return {
+      id: `ct_${i}`, name: p.name, team: 'CT', role: p.role,
+      x: DUST2_ZONES.ctSpawn.x + (Math.random() * 40 - 20),
+      y: DUST2_ZONES.ctSpawn.y + (i * 18 - 36),
+      path: [DUST2_ZONES.ctSpawn],
+      pathIndex: 0,
+      targetX: DUST2_ZONES.ctSpawn.x,
+      targetY: DUST2_ZONES.ctSpawn.y,
+      speed: speed,
+      angle: 0, hp: 100, isAlive: true,
+      color: '#38bdf8'
+    };
+  });
+
+  radarEntities.ts = tPlayers.map((p, i) => {
+    const moveStat = p.movement || 82;
+    const baseSpeed = 1.5 + (moveStat / 100) * 1.7;
+    const speed = p.role === 'AWPer' ? baseSpeed * 0.88 : baseSpeed;
+
+    return {
+      id: `t_${i}`, name: p.name, team: 'T', role: p.role,
+      x: DUST2_ZONES.tSpawn.x + (Math.random() * 40 - 20),
+      y: DUST2_ZONES.tSpawn.y + (i * 18 - 36),
+      path: [DUST2_ZONES.tSpawn],
+      pathIndex: 0,
+      targetX: DUST2_ZONES.tSpawn.x,
+      targetY: DUST2_ZONES.tSpawn.y,
+      speed: speed,
+      angle: 0, hp: 100, isAlive: true,
+      color: '#f97316'
+    };
+  });
 
   radarEntities.tracers = [];
   radarEntities.smokes = [];
@@ -920,62 +941,65 @@ function resetRadarPositions() {
   }
 }
 
-// 模拟 Dust2 经典战术 (RUSH A LONG / PUSH B TUNNELS / MID TO SHORT)
+// 模拟 Dust2 经典战术推进路线 (带真实航点路径)
 function triggerRadarBattle(myWon) {
   if (!radarCtx) initRadarCanvas();
 
   const stratRoll = Math.random();
   let stratName = 'A LONG RUSH (A大攻势)';
   let targetSite = DUST2_ZONES.aSite;
-  let tRoute = [DUST2_ZONES.outsideLong, DUST2_ZONES.longDoors, DUST2_ZONES.aLong];
+
+  // 预设路线 (T 队沿走廊航点移动)
+  let tPathALong = [DUST2_ZONES.tSpawn, DUST2_ZONES.outsideLong, DUST2_ZONES.longDoors, DUST2_ZONES.aLong, DUST2_ZONES.aSite];
+  let tPathB = [DUST2_ZONES.tSpawn, DUST2_ZONES.upperTunnel, DUST2_ZONES.bSite];
+  let tPathMidShort = [DUST2_ZONES.tSpawn, DUST2_ZONES.suicide, DUST2_ZONES.mid, DUST2_ZONES.xbox, DUST2_ZONES.catwalk, DUST2_ZONES.shortA, DUST2_ZONES.aSite];
+
+  let selectedTPath = tPathALong;
 
   if (stratRoll < 0.35) {
-    stratName = 'B TUNNELS RUSH (B洞冲锋)';
+    stratName = 'B TUNNELS RUSH (B洞强冲)';
     targetSite = DUST2_ZONES.bSite;
-    tRoute = [DUST2_ZONES.upperTunnel, DUST2_ZONES.bSite];
+    selectedTPath = tPathB;
   } else if (stratRoll < 0.7) {
     stratName = 'MID TO SHORT A (中路转A小)';
     targetSite = DUST2_ZONES.aSite;
-    tRoute = [DUST2_ZONES.suicide, DUST2_ZONES.catwalk, DUST2_ZONES.shortA];
+    selectedTPath = tPathMidShort;
   }
 
   radarEntities.roundPhase = 'ENGAGE';
   const tag = document.getElementById('radar-status-tag');
   if (tag) {
-    tag.textContent = `⚡ Dust2 战术: ${stratName}`;
+    tag.textContent = `⚡ Dust2 战术推进: ${stratName}`;
     tag.className = 'px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-400 font-bold animate-pulse';
   }
 
-  // T 队按战术路径推进
+  // 为 T 队分配路径与目标
   radarEntities.ts.forEach((t, i) => {
     if (!t.isAlive) return;
-    const waypoint = tRoute[Math.min(i, tRoute.length - 1)];
-    t.targetX = waypoint.x + Math.random() * 40 - 20;
-    t.targetY = waypoint.y + Math.random() * 40 - 20;
+    t.path = selectedTPath;
+    t.pathIndex = 0;
+    t.targetX = selectedTPath[0].x;
+    t.targetY = selectedTPath[0].y;
   });
 
-  // CT 队在 Dust2 经典防守位架枪 (A包点、Goose、B包点、中门AWP位)
+  // 为 CT 队分配 Dust2 防守路径
   radarEntities.cts.forEach((ct, i) => {
     if (!ct.isAlive) return;
-    if (i === 0) { ct.targetX = DUST2_ZONES.mid.x; ct.targetY = DUST2_ZONES.ctSpawn.y + 35; } // Mid AWP
-    else if (i <= 2) { ct.targetX = DUST2_ZONES.aSite.x + Math.random() * 50 - 25; ct.targetY = DUST2_ZONES.aSite.y + Math.random() * 50 - 25; }
-    else { ct.targetX = DUST2_ZONES.bSite.x + Math.random() * 50 - 25; ct.targetY = DUST2_ZONES.bSite.y + Math.random() * 50 - 25; }
+    let ctPath = [DUST2_ZONES.ctSpawn];
+    if (i === 0) ctPath.push({ x: DUST2_ZONES.mid.x, y: DUST2_ZONES.ctSpawn.y + 35 }); // Mid AWP
+    else if (i <= 2) ctPath.push(DUST2_ZONES.aSite, DUST2_ZONES.goose);
+    else ctPath.push(DUST2_ZONES.bSite, DUST2_ZONES.bDoors);
+
+    ct.path = ctPath;
+    ct.pathIndex = 0;
+    ct.targetX = ctPath[0].x;
+    ct.targetY = ctPath[0].y;
   });
 
-  // 包点交火与枪火弹道
+  // 阶段 2: 双方推进接触后触发交火
   setTimeout(() => {
-    // 烟雾弹遮挡
     radarEntities.smokes.push({ x: targetSite.x + (Math.random() * 30 - 15), y: targetSite.y + (Math.random() * 30 - 15), radius: 35, opacity: 0.85 });
-
-    // 枪口火光
     radarEntities.flashes.push({ x: targetSite.x + 10, y: targetSite.y - 10, radius: 15, opacity: 1.0 });
-
-    radarEntities.ts.forEach(t => {
-      if (t.isAlive) {
-        t.targetX = targetSite.x + Math.random() * 50 - 25;
-        t.targetY = targetSite.y + Math.random() * 50 - 25;
-      }
-    });
 
     const aliveCTs = radarEntities.cts.filter(c => c.isAlive);
     const aliveTs = radarEntities.ts.filter(t => t.isAlive);
@@ -1009,7 +1033,7 @@ function triggerRadarBattle(myWon) {
       const alertBanner = document.getElementById('c4-alert-banner');
       if (alertBanner) alertBanner.classList.remove('hidden');
     }
-  }, 450);
+  }, 900);
 }
 
 // 60FPS High-Detail Radar 渲染 Loop
@@ -1074,7 +1098,6 @@ function drawDust2RadarHighDetail() {
     radarCtx.fillStyle = '#f43f5e';
     radarCtx.fill();
 
-    // 💣 C4 Label
     radarCtx.fillStyle = '#ffffff';
     radarCtx.font = 'bold 9px monospace';
     radarCtx.textAlign = 'center';
@@ -1093,26 +1116,43 @@ function drawDust2RadarHighDetail() {
   });
   radarEntities.tracers = radarEntities.tracers.filter(t => t.opacity > 0);
 
-  // 7. 绘制 CT (蓝色) & T (橙色) 选手圆点 + 视角扇形 FOV + 血量环
+  // 7. 绘制 CT (蓝色) & T (橙色) 选手圆点 (基于选手实际 Speed 属性沿 Dust2 航点逐帧步进)
   const allPlayers = [...radarEntities.cts, ...radarEntities.ts];
 
   allPlayers.forEach(p => {
-    // 平滑走位
-    const dx = p.targetX - p.x;
-    const dy = p.targetY - p.y;
-    p.x += dx * 0.08;
-    p.y += dy * 0.08;
-
-    // 计算面向角度
-    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
-      p.angle = Math.atan2(dy, dx);
-    }
-
     if (!p.isAlive) {
       radarCtx.fillStyle = 'rgba(148, 163, 184, 0.5)';
       radarCtx.font = 'bold 12px monospace';
       radarCtx.fillText('✖', p.x - 4, p.y + 4);
       return;
+    }
+
+    // 检查是否需要更新航点目标
+    if (p.path && p.path.length > 0) {
+      const currentTarget = p.path[p.pathIndex];
+      if (currentTarget) {
+        p.targetX = currentTarget.x;
+        p.targetY = currentTarget.y;
+
+        const distToTarget = Math.hypot(currentTarget.x - p.x, currentTarget.y - p.y);
+        // 如果到达当前航点，自动切换到下一个航点
+        if (distToTarget < 12 && p.pathIndex < p.path.length - 1) {
+          p.pathIndex++;
+        }
+      }
+    }
+
+    // 计算方向向量与按选手 speed 步进移动
+    const dx = p.targetX - p.x;
+    const dy = p.targetY - p.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > 1.5) {
+      p.angle = Math.atan2(dy, dx);
+      // 使用基于选手身法 Speed 属性计算的真实移动速度
+      const step = Math.min(dist, p.speed || 2.0);
+      p.x += Math.cos(p.angle) * step;
+      p.y += Math.sin(p.angle) * step;
     }
 
     // 视角 FOV 扇形 (Field of View Cone)
