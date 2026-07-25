@@ -172,25 +172,37 @@ function initEvents() {
     const name = document.getElementById('input-player-name').value.trim();
     if (!name) return;
     const country = document.getElementById('input-player-country').value;
-    
-    // 重新生成 0 岁卡片
+    const height = Math.floor(Math.random() * 12) + 175;
+
+    // 彻底清空过往一切数据 (比赛状态、奖杯柜、胜负场、排名、资金与属性归零)
+    gameState.currentMatch = null;
     gameState.player = {
       name, country,
       ageYears: 0, ageWeeks: 0,
-      height: Math.floor(Math.random() * 12) + 175,
+      height,
       stage: 'CHILDHOOD',
       funds: 500,
       rank: 999,
-      statPoints: 10,
-      stats: { smash: 20, footwork: 20, netTouch: 20, stamina: 30, deception: 15, injuryRes: 90 },
-      racket: '儿童新手球拍', racketBoosts: {},
+      statPoints: 5, // 0 岁初始 5 属性点
+      stats: { smash: 10, footwork: 10, netTouch: 10, stamina: 15, deception: 10, injuryRes: 80 }, // 真正的幼儿基准属性 (上限 25 点)
+      racket: '儿童塑料玩具拍', racketBoosts: {},
       wins: 0, losses: 0, titles: 0,
-      eventLog: [`👶 0 岁出生于 ${country}！遗传预测身高 ${Math.floor(Math.random() * 12) + 175} cm，获得 10 初始属性点！`],
-      trophies: []
+      eventLog: [`👶 0 岁呱呱坠地于 ${country}！遗传预估身高 ${height} cm，开启纯白羽毛球人生！获得 5 初始 TP 点。`],
+      trophies: [] // 奖杯柜彻底归零！
     };
 
+    // 重置世界排名数据
+    const userEntry = gameState.hltvRankings.find(r => r.name.includes('YOU'));
+    if (userEntry) {
+      userEntry.name = `${name} (YOU)`;
+      userEntry.country = country;
+      userEntry.rank = 999;
+      userEntry.points = 0;
+      userEntry.titles = 0;
+    }
+
     saveGame(); renderAll(); modal?.classList.add('hidden');
-    showToast(`诞生！[${name}] 开始了他的羽毛球传奇人生！`);
+    showToast(`👶 重生！[${name}] 0 岁开启全新羽毛球人生，数据已全面归零！`);
   });
 
   // 比赛按键
