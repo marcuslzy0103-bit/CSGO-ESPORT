@@ -156,11 +156,17 @@ function switchTab(tabId) {
 /* ==========================================================================
    3. EVENTS — 事件监听
    ========================================================================== */
+let autoTrainInterval = null;
+
 function initEvents() {
   document.getElementById('btn-save-game')?.addEventListener('click', saveGame);
 
-  // 周特训按键
-  document.getElementById('btn-next-week')?.addEventListener('click', advanceWeek);
+  // 多倍速时间快速跨越按键
+  document.getElementById('btn-next-week')?.addEventListener('click', () => advanceWeeks(1));
+  document.getElementById('btn-next-month')?.addEventListener('click', () => advanceWeeks(4));
+  document.getElementById('btn-next-year')?.addEventListener('click', () => advanceWeeks(52));
+  document.getElementById('btn-skip-to-18')?.addEventListener('click', skipToAge18);
+  document.getElementById('btn-auto-train')?.addEventListener('click', toggleAutoTrain);
 
   // 从0岁开启新人生 Modal
   const modal = document.getElementById('modal-new-career');
@@ -169,6 +175,7 @@ function initEvents() {
 
   document.getElementById('form-new-career')?.addEventListener('submit', (e) => {
     e.preventDefault();
+    stopAutoTrain();
     const name = document.getElementById('input-player-name').value.trim();
     if (!name) return;
     const country = document.getElementById('input-player-country').value;
@@ -183,12 +190,12 @@ function initEvents() {
       stage: 'CHILDHOOD',
       funds: 500,
       rank: 999,
-      statPoints: 5, // 0 岁初始 5 属性点
-      stats: { smash: 10, footwork: 10, netTouch: 10, stamina: 15, deception: 10, injuryRes: 80 }, // 真正的幼儿基准属性 (上限 25 点)
+      statPoints: 5,
+      stats: { smash: 10, footwork: 10, netTouch: 10, stamina: 15, deception: 10, injuryRes: 80 },
       racket: '儿童塑料玩具拍', racketBoosts: {},
       wins: 0, losses: 0, titles: 0,
       eventLog: [`👶 0 岁呱呱坠地于 ${country}！遗传预估身高 ${height} cm，开启纯白羽毛球人生！获得 5 初始 TP 点。`],
-      trophies: [] // 奖杯柜彻底归零！
+      trophies: []
     };
 
     // 重置世界排名数据
@@ -211,47 +218,95 @@ function initEvents() {
 }
 
 /* ==========================================================================
-   4. WEEK & AGE PROGRESSION — 周推进与年龄成长系统 (0-38 岁)
+   4. WEEK & AGE PROGRESSION — 时间快速跨越与挂机闭关系统
    ========================================================================== */
 function getAgeStatCap(ageYears) {
-  if (ageYears <= 6) return 25;   // 👶 0~6 岁童年启蒙：上限 25 点 (幼年身体发育限制)
+  if (ageYears <= 6) return 25;   // 👶 0~6 岁童年启蒙：上限 25 点
   if (ageYears <= 12) return 50;  // 👦 7~12 岁少儿组：上限 50 点
   if (ageYears <= 17) return 75;  // 🏸 13~17 岁青少年国青队：上限 75 点
-  if (ageYears <= 32) return 99;  // 🏆 18~32 岁职业黄金期：上限 99 点 (成年巅峰)
-  return 90;                       // 🏅 33+ 岁老将期：上限 90 点 (体能随年龄自然衰减)
+  if (ageYears <= 32) return 99;  // 🏆 18~32 岁职业黄金期：上限 99 点
+  return 90;                       // 🏅 33+ 岁老将期：上限 90 点
 }
 
 function getStatCost(currentVal) {
-  if (currentVal >= 75) return 3; // 高阶加点消耗 3 TP
-  if (currentVal >= 50) return 2; // 中阶加点消耗 2 TP
-  return 1;                       // 初阶加点消耗 1 TP
+  if (currentVal >= 75) return 3;
+  if (currentVal >= 50) return 2;
+  return 1;
 }
 
-function advanceWeek() {
+function advanceWeeks(count = 1, silent = false) {
   const p = gameState.player;
-  p.ageWeeks++;
+  
+  for (let i = 0; i < count; i++) {
+    p.ageWeeks++;
+    if (p.ageWeeks >= 52) {
+      p.ageYears++;
+      p.ageWeeks = 0;
+      if (!silent) p.eventLog.unshift(`🎂 祝贺！年龄增长到了 ${p.ageYears} 岁！解锁更高的身体发育上限 (${getAgeStatCap(p.ageYears)} 点)！`);
+    }
 
-  if (p.ageWeeks >= 52) {
-    p.ageYears++;
-    p.ageWeeks = 0;
-    p.eventLog.unshift(`🎂 祝贺！你的年龄增长到了 ${p.ageYears} 岁！解锁更高身体上限 (${getAgeStatCap(p.ageYears)} 点)！`);
+    // 判定年龄阶段
+    if (p.ageYears < 7) p.stage = 'CHILDHOOD';
+    else if (p.ageYears < 13) p.stage = 'PRIMARY';
+    else if (p.ageYears < 18) p.stage = 'JUNIOR';
+    else if (p.ageYears < 33) p.stage = 'PRO';
+    else p.stage = 'VETERAN';
+
+    p.statPoints += 1;
+    if (!silent && Math.random() < 0.2) triggerRandomLifeEvent();
   }
 
-  // 判定年龄阶段
-  if (p.ageYears < 7) p.stage = 'CHILDHOOD';
-  else if (p.ageYears < 13) p.stage = 'PRIMARY';
-  else if (p.ageYears < 18) p.stage = 'JUNIOR';
-  else if (p.ageYears < 33) p.stage = 'PRO';
-  else p.stage = 'VETERAN';
-
-  // 周特训获得合理的 1 TP 加点
-  p.statPoints += 1;
-  p.eventLog.unshift(`🏋️ 第 ${p.ageWeeks} 周特训完成：获得了 +1 可用属性加点 (TP)！`);
-
-  // 随机触发羽毛球生活事件
-  triggerRandomLifeEvent();
+  if (!silent) {
+    if (count > 1) {
+      p.eventLog.unshift(`🚀 闭关修炼了 ${count} 周！获得了 +${count} 可用属性点 (TP)！`);
+      showToast(`⚡ 快速推进了 ${count} 周！积累 +${count} TP！`);
+    } else {
+      p.eventLog.unshift(`🏋️ 第 ${p.ageWeeks} 周特训完成：获得了 +1 可用属性点 (TP)！`);
+    }
+  }
 
   saveGame(); renderAll();
+}
+
+function skipToAge18() {
+  const p = gameState.player;
+  if (p.ageYears >= 18) { showToast('你已经达到或超过 18 岁成年期！'); return; }
+
+  const remainingYears = 18 - p.ageYears;
+  const remainingWeeks = remainingYears * 52 - p.ageWeeks;
+
+  advanceWeeks(remainingWeeks, true);
+  p.eventLog.unshift(`⚡ 开启【一键直达 18 岁成年期】！顺利进入成年 BWF 职业巡回赛战场，获得 +${remainingWeeks} TP 点数！`);
+  showToast(`⚡ 一键直达 18 岁成年期！获得了 +${remainingWeeks} TP 属性点！`);
+}
+
+function toggleAutoTrain() {
+  const btn = document.getElementById('btn-auto-train');
+  if (autoTrainInterval) {
+    stopAutoTrain();
+  } else {
+    autoTrainInterval = setInterval(() => {
+      advanceWeeks(1, true);
+    }, 120);
+    if (btn) {
+      btn.textContent = '⏸ 停止自动闭关';
+      btn.className = 'w-full py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition-all animate-pulse';
+    }
+    showToast('🔄 已开启【自动闭关挂机】！属性点在快速飙升中...');
+  }
+}
+
+function stopAutoTrain() {
+  if (autoTrainInterval) {
+    clearInterval(autoTrainInterval);
+    autoTrainInterval = null;
+    const btn = document.getElementById('btn-auto-train');
+    if (btn) {
+      btn.textContent = '🔄 开启自动闭关挂机';
+      btn.className = 'w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-bold transition-all';
+    }
+    showToast('已暂停自动闭关。');
+  }
 }
 
 function triggerRandomLifeEvent() {
