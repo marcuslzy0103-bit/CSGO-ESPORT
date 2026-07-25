@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>COUNTER-MANAGER 2026 // CS:GO & CS2 电子竞技俱乐部经理模拟器</title>
-  <meta name="description" content="首款 CS:GO / CS2 电子竞技战队经理模拟游戏！招募顶级枪手/狙击手，管理 CS 回合经济，制定战术并冲击 Major 冠军与 HLTV 世界排名第一！">
+  <meta name="description" content="首款 CS:GO / CS2 电子竞技战队经理模拟游戏！招募顶级枪手/狙击手，训练特长 Perk 技能树，管理 BO3 淘汰赛与 Major 冠军殿堂！">
 
   <!-- Google Fonts 字体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -63,32 +63,32 @@
           </div>
           <div>
             <div class="font-mono font-extrabold text-sm tracking-wider text-white flex items-center gap-2">
-              COUNTER-MANAGER <span class="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-400 text-[10px]">2026</span>
+              COUNTER-MANAGER <span class="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-400 text-[10px]">PRO 2026</span>
             </div>
             <div class="text-[11px] font-mono text-slate-400 flex items-center gap-2">
               <span id="header-club-name" class="text-amber-400 font-bold">CYBER WOLVES CS</span>
               <span>•</span>
-              <span id="header-season">2026 Season 1</span>
+              <span id="header-season">2026 Major Season</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 中间：战队资金 & HLTV 排名 -->
-      <div class="hidden lg:flex items-center gap-6 font-mono text-xs">
+      <!-- 中间：战队资金、训练点数 & HLTV 排名 -->
+      <div class="hidden lg:flex items-center gap-5 font-mono text-xs">
         <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800">
-          <span class="text-slate-400">💰 俱乐部资金:</span>
+          <span class="text-slate-400">💰 资金:</span>
           <span id="header-budget" class="text-emerald-400 font-bold text-sm">$100,000</span>
         </div>
 
         <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800">
-          <span class="text-slate-400">🏆 HLTV 世界排名:</span>
-          <span id="header-rank" class="text-amber-400 font-bold">#18 WORLD</span>
+          <span class="text-slate-400">⚡ 训练点数 (TP):</span>
+          <span id="header-tp" class="text-cyan-400 font-bold text-sm">15 TP</span>
         </div>
 
         <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800">
-          <span class="text-slate-400">⚔️ 战绩:</span>
-          <span id="header-record" class="text-cyan-400 font-bold">0胜 - 0负</span>
+          <span class="text-slate-400">🏆 HLTV 排名:</span>
+          <span id="header-rank" class="text-amber-400 font-bold">#18 WORLD</span>
         </div>
       </div>
 
@@ -117,17 +117,19 @@
           <span>📊 俱乐部概览</span>
         </button>
         <button data-tab="roster" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
-          <span>👥 战队阵容 & 战术</span>
+          <span>👥 战队阵容 & 训练 Perks</span>
         </button>
         <button data-tab="transfers" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
-          <span>🛒 转会市场</span>
-          <span id="market-badge" class="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-400 text-[10px]">NEW</span>
+          <span>🛒 转会与青训营</span>
         </button>
         <button data-tab="match" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
-          <span>⚔️ 比赛大厅 (LIVE)</span>
+          <span>⚔️ 比赛 & Major BO3</span>
+        </button>
+        <button data-tab="stats" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
+          <span>📈 HLTV 深度数据与殿堂</span>
         </button>
         <button data-tab="rankings" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
-          <span>🏆 HLTV 世界排名</span>
+          <span>🏆 世界战队排名</span>
         </button>
       </nav>
     </div>
@@ -145,19 +147,19 @@
         <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
           <div class="md:col-span-8 space-y-3">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 font-mono text-xs font-bold text-amber-400">
-              <span>🏆 UPCOMING MATCH // IEM KATOWICE QUALIFIERS</span>
+              <span>🏆 MAJOR QUALIFIERS // IEM KATOWICE CHAMPIONSHIP</span>
             </div>
             <h2 class="text-2xl sm:text-3xl font-extrabold text-white">
               下一场对决：<span id="dash-next-opp" class="text-amber-400">FaZe Clan</span>
             </h2>
             <p class="text-slate-400 text-xs sm:text-sm max-w-xl">
-              对手拥有顶尖枪力与经验。调整战队默认防守战术，为全配长枪局与残局 1v1 做好全盘准备！
+              使用训练点数 (TP) 强化首发选手的枪法与残局能力，为即将到来的 Major BO3 淘汰战做足全盘准备！
             </p>
           </div>
 
           <div class="md:col-span-4 flex flex-col items-start md:items-end justify-center gap-3">
             <button id="dash-btn-play" class="w-full md:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-mono font-extrabold text-sm shadow-xl shadow-amber-500/20 transition-all transform hover:-translate-y-0.5">
-              ⚔️ 开始比赛 (START MATCH)
+              ⚔️ 进入比赛大厅 (MATCH ARENA)
             </button>
           </div>
         </div>
@@ -168,37 +170,37 @@
         <div class="rounded-xl bg-cs-card border border-slate-800 p-5 shadow-xl">
           <div class="font-mono text-xs text-slate-400 mb-1">战队平均 Firepower (枪术)</div>
           <div id="dash-avg-aim" class="text-2xl font-extrabold font-mono text-amber-400">84.2</div>
-          <div class="mt-2 text-[11px] text-slate-500 font-mono">基于 5 位首发选手枪法均值</div>
+          <div class="mt-2 text-[11px] text-slate-500 font-mono">包含训练 Perk 称号加成</div>
         </div>
 
         <div class="rounded-xl bg-cs-card border border-slate-800 p-5 shadow-xl">
-          <div class="font-mono text-xs text-slate-400 mb-1">战队战术防守率 (Tactics)</div>
-          <div id="dash-avg-tactics" class="text-2xl font-extrabold font-mono text-cyan-400">81.5</div>
-          <div class="mt-2 text-[11px] text-slate-500 font-mono">包含 IGL 指挥与投掷物配合</div>
+          <div class="font-mono text-xs text-slate-400 mb-1">可用训练点数 (Training Points)</div>
+          <div id="dash-tp-display" class="text-2xl font-extrabold font-mono text-cyan-400">15 TP</div>
+          <div class="mt-2 text-[11px] text-slate-500 font-mono">每场比赛胜利后可获 TP 升级</div>
         </div>
 
         <div class="rounded-xl bg-cs-card border border-slate-800 p-5 shadow-xl">
           <div class="font-mono text-xs text-slate-400 mb-1">全队平均士气 (Morale)</div>
           <div id="dash-avg-morale" class="text-2xl font-extrabold font-mono text-emerald-400">92%</div>
-          <div class="mt-2 text-[11px] text-slate-500 font-mono">影响残局 Clutch 心态与稳定度</div>
+          <div class="mt-2 text-[11px] text-slate-500 font-mono">影响残局 1vN Clutch 爆种概率</div>
         </div>
 
         <div class="rounded-xl bg-cs-card border border-slate-800 p-5 shadow-xl">
           <div class="font-mono text-xs text-slate-400 mb-1">月度薪资支出 (Monthly Salary)</div>
           <div id="dash-monthly-salary" class="text-2xl font-extrabold font-mono text-rose-400">$18,500</div>
-          <div class="mt-2 text-[11px] text-slate-500 font-mono">包含首发与替补选手月薪</div>
+          <div class="mt-2 text-[11px] text-slate-500 font-mono">包含首发与替补选手工资</div>
         </div>
       </div>
 
-      <!-- 阵容快照与转会推荐 -->
+      <!-- 阵容快照与头条新闻 -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <!-- 5 人首发快照 -->
         <div class="lg:col-span-7 rounded-xl bg-cs-card border border-slate-800 p-6 shadow-xl space-y-4">
           <div class="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 class="font-mono text-sm font-bold text-white flex items-center gap-2">
-              <span>🎯 5 人首发阵容 (Lineup)</span>
+              <span>🎯 5 人首发阵容 (Lineup Snapshot)</span>
             </h3>
-            <button data-tab-goto="roster" class="font-mono text-xs text-amber-400 hover:underline">管理阵容 &gt;</button>
+            <button data-tab-goto="roster" class="font-mono text-xs text-amber-400 hover:underline">训练选手的技能 Perks &gt;</button>
           </div>
 
           <div id="dash-roster-list" class="space-y-3">
@@ -224,62 +226,55 @@
 
 
     <!-- ==========================================================================
-         TAB 2: 👥 战队阵容 & 战术 (ROSTER & TACTICS)
+         TAB 2: 👥 战队阵容 & 训练 PERKS (ROSTER & TRAINING TREE)
          ========================================================================== -->
     <div id="tab-roster" class="tab-content hidden space-y-8">
       
       <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
         <div>
-          <h2 class="text-2xl font-extrabold text-white">战队阵容与首发分配</h2>
-          <p class="text-slate-400 text-xs mt-1">根据 AWPer、IGL、Entry、Support、Lurker 角色调整首发与战术策略。</p>
+          <h2 class="text-2xl font-extrabold text-white">战队阵容 & 训练 Perk 技能树</h2>
+          <p class="text-slate-400 text-xs mt-1">消耗训练点数 (TP) 强化选手的枪法 Aim、意识 Sense、残局 Clutch 并解锁顶级 Perk 特长称号！</p>
         </div>
 
-        <!-- 战术风格选择下拉框 -->
-        <div class="flex items-center gap-3">
-          <label for="select-tactic-style" class="font-mono text-xs text-slate-400 font-bold">主战术风格:</label>
-          <select id="select-tactic-style" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono text-amber-400 outline-none">
-            <option value="balanced">默认平衡战术 (Balanced Default)</option>
-            <option value="aggressive">前压提速爆破 (Aggressive Rush)</option>
-            <option value="defensive">严密拉扯架枪 (Slow Control & Hold)</option>
-            <option value="forcebuy">激进强买拼枪 (Force Buy Focus)</option>
-          </select>
+        <div class="flex items-center gap-4">
+          <div class="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 font-mono text-xs text-cyan-400 font-bold">
+            可用 TP 点数: <span id="roster-tp-val" class="text-white text-sm">15 TP</span>
+          </div>
+
+          <button id="btn-buy-tp" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono font-bold text-xs shadow-lg shadow-amber-500/20 transition-all">
+            + 购买训练营课时 ($10,000 / 5 TP)
+          </button>
         </div>
       </div>
 
-      <!-- 首发阵容 5 人卡片 -->
+      <!-- 首发 5 人培训技能卡片 -->
       <div class="space-y-3">
-        <h3 class="font-mono text-xs font-bold text-amber-400 uppercase tracking-wider">🎯 5 人首发名册 (Starting Roster)</h3>
-        <div id="roster-full-cards" class="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <!-- 5 个选手的属性卡片动态渲染 -->
+        <h3 class="font-mono text-xs font-bold text-amber-400 uppercase tracking-wider">🎯 首发选手技能树与特长 Perks (Lineup Training)</h3>
+        <div id="roster-training-cards" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <!-- 动态渲染选手技能卡片 -->
         </div>
       </div>
 
-      <!-- 战队替补席 (Bench & Substitutes) -->
+      <!-- 替补席 -->
       <div class="rounded-xl bg-cs-card border border-slate-800 p-5 space-y-4">
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-          <h3 class="font-mono text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-2">
-            <span>🪑 战队替补席 (BENCH & SUBSTITUTES)</span>
-          </h3>
-          <span class="font-mono text-[10px] text-slate-500">被替换选手将暂留替补席</span>
+          <h3 class="font-mono text-xs font-bold text-rose-400 uppercase tracking-wider">🪑 战队替补席 (BENCH & SUBSTITUTES)</h3>
         </div>
-
-        <div id="bench-list" class="space-y-3">
-          <!-- 动态渲染替补席 -->
-        </div>
+        <div id="bench-list" class="space-y-3"></div>
       </div>
 
     </div>
 
 
     <!-- ==========================================================================
-         TAB 3: 🛒 选手转会市场 (TRANSFER MARKET)
+         TAB 3: 🛒 转会与青训营 (TRANSFERS & ACADEMY)
          ========================================================================== -->
     <div id="tab-transfers" class="tab-content hidden space-y-8">
       
       <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
         <div>
-          <h2 class="text-2xl font-extrabold text-white">HLTV 选手转会交易大厅</h2>
-          <p class="text-slate-400 text-xs mt-1">招募世界级枪手与后起之秀，提升俱乐部整体 Rating 评级。</p>
+          <h2 class="text-2xl font-extrabold text-white">转会大厅 & 青训选秀营</h2>
+          <p class="text-slate-400 text-xs mt-1">签约顶级明星选手，或以低廉价格发掘青训新人 (Academy Rookies)。</p>
         </div>
 
         <div class="flex items-center gap-3 font-mono text-xs">
@@ -288,19 +283,41 @@
         </div>
       </div>
 
-      <!-- 市场选手列表卡片 -->
-      <div id="market-players-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- 动态渲染转会市场 -->
+      <!-- 转会市场列表 -->
+      <div class="space-y-3">
+        <h3 class="font-mono text-xs font-bold text-cyan-400 uppercase tracking-wider">🔥 挂牌职业选手 (Pro Transfer List)</h3>
+        <div id="market-players-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+      </div>
+
+      <!-- 青训营小卡片 -->
+      <div class="space-y-3 pt-4">
+        <h3 class="font-mono text-xs font-bold text-emerald-400 uppercase tracking-wider">🌱 战队青训选秀营 (Academy Prospects)</h3>
+        <div id="academy-players-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
       </div>
 
     </div>
 
 
     <!-- ==========================================================================
-         TAB 4: ⚔️ 比赛大厅 (LIVE MATCH ENGINE)
+         TAB 4: ⚔️ 比赛 & MAJOR BO3 淘汰赛 (MATCH & MAJOR BO3)
          ========================================================================== -->
     <div id="tab-match" class="tab-content hidden space-y-6">
       
+      <!-- Major 8强淘汰树 Banner -->
+      <div class="rounded-xl bg-slate-900 border border-slate-800 p-5 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h3 class="font-mono text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+            <span>🏆 MAJOR CHAMPIONSHIP 8强淘汰对阵树 (BO3 BRACKET)</span>
+          </h3>
+          <span class="font-mono text-[10px] text-slate-400" id="major-stage-title">STAGE: QUARTER-FINALS (BO3)</span>
+        </div>
+
+        <!-- 8强 淘汰树 视图 -->
+        <div class="grid grid-cols-3 gap-4 text-center font-mono text-xs" id="major-bracket-view">
+          <!-- 动态渲染 8强 对阵图 -->
+        </div>
+      </div>
+
       <!-- 比赛比分面板 Header -->
       <div class="rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-2xl space-y-6">
         <div class="flex items-center justify-between border-b border-slate-800 pb-4">
@@ -368,7 +385,7 @@
           </button>
 
           <button id="btn-reset-match" class="px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono font-bold text-xs transition-all">
-            ↺ 重新开始 / 选择新对手
+            ↺ 匹配新对手
           </button>
         </div>
       </div>
@@ -423,7 +440,50 @@
 
 
     <!-- ==========================================================================
-         TAB 5: 🏆 HLTV 世界排名 (WORLD RANKINGS)
+         TAB 5: 📈 HLTV 深度数据与荣誉殿堂 (HLTV STATS & HALL OF FAME)
+         ========================================================================== -->
+    <div id="tab-stats" class="tab-content hidden space-y-8">
+      
+      <div class="border-b border-slate-800 pb-4">
+        <h2 class="text-2xl font-extrabold text-white">HLTV 赛季深度数据统计 & MVP 荣誉殿堂</h2>
+        <p class="text-slate-400 text-xs mt-1">查看战队选手的 K/D 比例、HLTV Rating 2.0、KAST % 稳定度与 1vN 残局成功率。</p>
+      </div>
+
+      <!-- 选手详细数据表格 -->
+      <div class="rounded-xl bg-cs-card border border-slate-800 overflow-hidden shadow-xl">
+        <table class="w-full text-left font-mono text-xs">
+          <thead class="bg-slate-900 text-slate-400 border-b border-slate-800">
+            <tr>
+              <th class="p-4">选手 (PLAYER)</th>
+              <th class="p-4">角色 (ROLE)</th>
+              <th class="p-4">总击杀 (KILLS)</th>
+              <th class="p-4">K/D 比率</th>
+              <th class="p-4">KAST %</th>
+              <th class="p-4">HLTV RATING 2.0</th>
+              <th class="p-4">残局 1vN 胜场</th>
+            </tr>
+          </thead>
+          <tbody id="stats-tbody" class="divide-y divide-slate-800">
+            <!-- 动态渲染 -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- MVP 荣誉殿堂柜子 (Hall of Fame) -->
+      <div class="rounded-xl bg-cs-card border border-slate-800 p-6 space-y-4">
+        <h3 class="font-mono text-sm font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+          <span>🏆 Major 冠军奖杯柜与 MVP 荣誉殿堂 (Trophy Cabinet)</span>
+        </h3>
+        <div id="trophy-cabinet" class="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
+          <!-- 动态奖杯 -->
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ==========================================================================
+         TAB 6: 🏆 HLTV 世界排名 (WORLD RANKINGS)
          ========================================================================== -->
     <div id="tab-rankings" class="tab-content hidden space-y-6">
       
@@ -476,7 +536,7 @@
             <option value="🇪🇺 Europe">🇪🇺 欧洲 (Europe)</option>
             <option value="🇺🇸 North America">🇺🇸 北美 (North America)</option>
             <option value="🇩🇰 Denmark">🇩🇰 丹麦 (Denmark)</option>
-            <option value="🇺🇦 Ukraine">🇺🇦 乌克兰 (Ukraine)</option>
+            <option value="🇺化 Ukraine">🇺🇦 乌克兰 (Ukraine)</option>
           </select>
         </div>
 

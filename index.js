@@ -1,56 +1,84 @@
 /**
- * COUNTER-MANAGER 2026 // CS:GO & CS2 ESPORTS SIMULATION ENGINE
- * Robust Bug-Fixed Engine with Halftime Side Swaps, Map BP, Bench Management, & CS Economy.
+ * COUNTER-MANAGER 2026 PRO // CS:GO & CS2 ESPORTS SIMULATION ENGINE
+ * Full Engine: AI Opponents, Season Calendar, Training Perks, Chemistry, BO3 Major, HLTV Stats, MVP Hall of Fame
  */
 
-const STORAGE_KEY = 'cs_manager_save_v3';
+const STORAGE_KEY = 'cs_manager_save_v5';
+const MAP_POOL = ['de_inferno', 'de_mirage', 'de_nuke', 'de_anubis', 'de_ancient', 'de_dust2', 'de_vertigo'];
 
-// 初始默认战队状态
+/* ==========================================================================
+   TEAM AI PROFILES — 每支战队的独特战术风格与明星选手
+   ========================================================================== */
+const TEAM_PROFILES = {
+  'Natus Vincere': { style: 'awp_heavy', avgAim: 93, avgSense: 91, avgClutch: 94, star: 's1mple', region: '🇺🇦 Ukraine', points: 985 },
+  'Team Vitality':  { style: 'balanced',  avgAim: 92, avgSense: 95, avgClutch: 93, star: 'ZywOo',  region: '🇫🇷 France', points: 940 },
+  'FaZe Clan':      { style: 'firepower', avgAim: 95, avgSense: 88, avgClutch: 90, star: 'rain',   region: '🇪🇺 Europe', points: 890 },
+  'G2 Esports':     { style: 'tactical',  avgAim: 90, avgSense: 94, avgClutch: 88, star: 'NiKo',   region: '🇪🇺 Europe', points: 850 },
+  'MOUZ':           { style: 'aggressive', avgAim: 91, avgSense: 87, avgClutch: 89, star: 'frozen', region: '🇪🇺 Europe', points: 810 },
+  'Astralis':       { style: 'defensive', avgAim: 87, avgSense: 96, avgClutch: 86, star: 'dev1ce', region: '🇩🇰 Denmark', points: 760 },
+  'Heroic':         { style: 'tactical',  avgAim: 88, avgSense: 91, avgClutch: 85, star: 'stavn',  region: '🇩🇰 Denmark', points: 720 },
+  'FURIA Esports':  { style: 'aggressive', avgAim: 89, avgSense: 85, avgClutch: 87, star: 'KSCERATO', region: '🇧🇷 Brazil', points: 680 },
+  'Cloud9':         { style: 'balanced',  avgAim: 88, avgSense: 89, avgClutch: 86, star: 'HObbit', region: '🇺🇸 NA', points: 620 },
+  'ENCE':           { style: 'tactical',  avgAim: 86, avgSense: 90, avgClutch: 84, star: 'dycha',  region: '🇪🇺 Europe', points: 580 },
+  'Liquid':         { style: 'balanced',  avgAim: 87, avgSense: 88, avgClutch: 85, star: 'NAF',    region: '🇺🇸 NA', points: 560 },
+  'Complexity':     { style: 'aggressive', avgAim: 84, avgSense: 83, avgClutch: 82, star: 'JT',    region: '🇺🇸 NA', points: 420 },
+};
+const TEAM_NAMES = Object.keys(TEAM_PROFILES);
+
+/* ==========================================================================
+   PERK DEFINITIONS — 选手特长 Perk 技能树
+   ========================================================================== */
+const PERK_DEFS = {
+  'AWP Specialist':  { stat: 'aim',      boost: 5, cost: 5, req: { aim: 85 },      icon: '🔭', desc: 'AWP 命中率 +5' },
+  'Clutch God':      { stat: 'clutch',   boost: 6, cost: 5, req: { clutch: 85 },   icon: '🧊', desc: '1vN 残局心态 +6' },
+  'IGL Mastermind':  { stat: 'sense',    boost: 5, cost: 4, req: { sense: 88 },     icon: '🧠', desc: '全队战术读图 +5' },
+  'Entry Machine':   { stat: 'aim',      boost: 4, cost: 4, req: { aim: 82 },       icon: '💥', desc: '首杀火力突破 +4' },
+  'Smoke Criminal':  { stat: 'sense',    boost: 4, cost: 3, req: { sense: 80 },     icon: '💨', desc: '投掷物利用率 +4' },
+  'Speed Demon':     { stat: 'movement', boost: 5, cost: 3, req: { movement: 82 },  icon: '⚡', desc: '极限身法走位 +5' },
+};
+
+/* ==========================================================================
+   DEFAULT GAME STATE — 完整默认游戏状态
+   ========================================================================== */
 const defaultGameState = {
-  club: {
-    name: 'CYBER WOLVES CS',
-    region: '🇲🇾 Malaysia',
-    coach: 'Marcus',
-    budget: 100000,
-    rank: 18,
-    wins: 0,
-    losses: 0,
-  },
+  club: { name: 'CYBER WOLVES CS', region: '🇲🇾 Malaysia', coach: 'Marcus', budget: 100000, rank: 18, wins: 0, losses: 0 },
+  trainingPoints: 15,
   tacticStyle: 'balanced',
+  matchesPlayed: 0,
   roster: [
-    { id: 'p1', name: 'Marcus', role: 'AWPer', aim: 88, sense: 85, clutch: 90, movement: 84, morale: 95, salary: 4500, value: 35000 },
-    { id: 'p2', name: 'Vortex', role: 'IGL', aim: 80, sense: 92, clutch: 82, movement: 78, morale: 90, salary: 3800, value: 28000 },
-    { id: 'p3', name: 'Blaze', role: 'Entry', aim: 89, sense: 79, clutch: 80, movement: 88, morale: 88, salary: 3600, value: 26000 },
-    { id: 'p4', name: 'Shadow', role: 'Support', aim: 82, sense: 86, clutch: 84, movement: 80, morale: 92, salary: 3200, value: 22000 },
-    { id: 'p5', name: 'Echo', role: 'Lurker', aim: 85, sense: 88, clutch: 89, movement: 85, morale: 90, salary: 3400, value: 24000 }
+    { id: 'p1', name: 'Marcus',  role: 'AWPer',  aim: 88, sense: 85, clutch: 90, movement: 84, morale: 95, salary: 4500, value: 35000, perks: [], chemistry: 100, joinedAt: 0 },
+    { id: 'p2', name: 'Vortex',  role: 'IGL',    aim: 80, sense: 92, clutch: 82, movement: 78, morale: 90, salary: 3800, value: 28000, perks: [], chemistry: 100, joinedAt: 0 },
+    { id: 'p3', name: 'Blaze',   role: 'Entry',  aim: 89, sense: 79, clutch: 80, movement: 88, morale: 88, salary: 3600, value: 26000, perks: [], chemistry: 100, joinedAt: 0 },
+    { id: 'p4', name: 'Shadow',  role: 'Support',aim: 82, sense: 86, clutch: 84, movement: 80, morale: 92, salary: 3200, value: 22000, perks: [], chemistry: 100, joinedAt: 0 },
+    { id: 'p5', name: 'Echo',    role: 'Lurker', aim: 85, sense: 88, clutch: 89, movement: 85, morale: 90, salary: 3400, value: 24000, perks: [], chemistry: 100, joinedAt: 0 }
   ],
-  bench: [], // 替补席
+  bench: [],
   market: [
-    { id: 'm1', name: 's1mple_fan', role: 'AWPer', aim: 96, sense: 94, clutch: 95, movement: 92, morale: 95, salary: 8500, value: 75000 },
-    { id: 'm2', name: 'ZywOo_JR', role: 'AWPer', aim: 95, sense: 96, clutch: 94, movement: 90, morale: 96, salary: 8200, value: 72000 },
-    { id: 'm3', name: 'NiKo_Rifle', role: 'Entry', aim: 97, sense: 90, clutch: 88, movement: 91, morale: 90, salary: 7800, value: 68000 },
-    { id: 'm4', name: 'ropz_Lurk', role: 'Lurker', aim: 92, sense: 97, clutch: 96, movement: 89, morale: 94, salary: 7500, value: 65000 },
-    { id: 'm5', name: 'm0NESY_Flick', role: 'AWPer', aim: 95, sense: 92, clutch: 93, movement: 95, morale: 92, salary: 7900, value: 70000 },
-    { id: 'm6', name: 'b1t_OneTap', role: 'Entry', aim: 94, sense: 88, clutch: 86, movement: 87, morale: 90, salary: 5500, value: 45000 }
+    { id: 'm1', name: 's1mple_fan',   role: 'AWPer', aim: 96, sense: 94, clutch: 95, movement: 92, morale: 95, salary: 8500, value: 75000, perks: [], chemistry: 50, joinedAt: -1 },
+    { id: 'm2', name: 'ZywOo_JR',     role: 'AWPer', aim: 95, sense: 96, clutch: 94, movement: 90, morale: 96, salary: 8200, value: 72000, perks: [], chemistry: 50, joinedAt: -1 },
+    { id: 'm3', name: 'NiKo_Rifle',   role: 'Entry', aim: 97, sense: 90, clutch: 88, movement: 91, morale: 90, salary: 7800, value: 68000, perks: [], chemistry: 50, joinedAt: -1 },
+    { id: 'm4', name: 'ropz_Lurk',    role: 'Lurker',aim: 92, sense: 97, clutch: 96, movement: 89, morale: 94, salary: 7500, value: 65000, perks: [], chemistry: 50, joinedAt: -1 },
+    { id: 'm5', name: 'm0NESY_Flick', role: 'AWPer', aim: 95, sense: 92, clutch: 93, movement: 95, morale: 92, salary: 7900, value: 70000, perks: [], chemistry: 50, joinedAt: -1 },
+    { id: 'm6', name: 'b1t_OneTap',   role: 'Entry', aim: 94, sense: 88, clutch: 86, movement: 87, morale: 90, salary: 5500, value: 45000, perks: [], chemistry: 50, joinedAt: -1 }
   ],
-  hltvRankings: [
-    { rank: 1, name: 'Natus Vincere', region: '🇺🇦 Ukraine', points: 985, winLoss: '24-4' },
-    { rank: 2, name: 'Team Vitality', region: '🇫🇷 France', points: 940, winLoss: '22-5' },
-    { rank: 3, name: 'FaZe Clan', region: '🇪🇺 Europe', points: 890, winLoss: '20-7' },
-    { rank: 4, name: 'G2 Esports', region: '🇪🇺 Europe', points: 850, winLoss: '19-8' },
-    { rank: 5, name: 'MOUZ', region: '🇪🇺 Europe', points: 810, winLoss: '17-9' },
-    { rank: 6, name: 'Astralis', region: '🇩🇰 Denmark', points: 760, winLoss: '16-10' },
-    { rank: 7, name: 'Heroic', region: '🇩🇰 Denmark', points: 720, winLoss: '15-11' },
-    { rank: 8, name: 'FURIA Esports', region: '🇧🇷 Brazil', points: 680, winLoss: '14-12' },
-    { rank: 18, name: 'CYBER WOLVES CS', region: '🇲🇾 Malaysia', points: 340, winLoss: '0-0' }
+  academy: [
+    { id: 'a1', name: 'Rookie_Ace',  role: 'Entry',  aim: 72, sense: 68, clutch: 70, movement: 75, morale: 98, salary: 1200, value: 8000, perks: [], chemistry: 50, joinedAt: -1 },
+    { id: 'a2', name: 'Junior_AWP',  role: 'AWPer',  aim: 74, sense: 65, clutch: 68, movement: 70, morale: 95, salary: 1000, value: 6000, perks: [], chemistry: 50, joinedAt: -1 },
+    { id: 'a3', name: 'NewBlood_IGL',role: 'IGL',    aim: 68, sense: 76, clutch: 72, movement: 67, morale: 97, salary: 1100, value: 7000, perks: [], chemistry: 50, joinedAt: -1 },
   ],
+  season: { phase: 'league', matchIndex: 0, calendar: [] },
+  playerStats: {},
+  trophies: [],
+  hltvRankings: [],
   currentMatch: null
 };
 
-let gameState = JSON.parse(JSON.stringify(defaultGameState));
+let gameState = null;
 let autoPlayInterval = null;
 
-// 初始化入口
+/* ==========================================================================
+   INIT — 游戏初始化
+   ========================================================================== */
 document.addEventListener('DOMContentLoaded', () => {
   loadGame();
   initTabs();
@@ -59,11 +87,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================================================
-   1. 存档与状态控制器 (Storage Controller)
+   1. STORAGE — 存档控制器
    ========================================================================== */
 function saveGame() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
-  showToast('游戏进度与战力已成功保存！💾');
+  showToast('游戏进度已自动保存！💾');
 }
 
 function loadGame() {
@@ -71,462 +99,621 @@ function loadGame() {
   if (saved) {
     try {
       gameState = JSON.parse(saved);
-      if (!gameState.bench) gameState.bench = [];
-    } catch (e) {
-      gameState = JSON.parse(JSON.stringify(defaultGameState));
-    }
-  } else {
-    gameState = JSON.parse(JSON.stringify(defaultGameState));
-  }
+      migrateState();
+    } catch (e) { resetToDefault(); }
+  } else { resetToDefault(); }
+  if (!gameState.season.calendar.length) generateSeasonCalendar();
+  if (!gameState.currentMatch) advanceToNextMatch();
+}
 
-  if (!gameState.currentMatch) {
-    initNewMatch('FaZe Clan');
-  }
+function resetToDefault() {
+  gameState = JSON.parse(JSON.stringify(defaultGameState));
+  initPlayerStats();
+  buildHltvRankings();
+  generateSeasonCalendar();
+}
+
+function migrateState() {
+  if (!gameState.bench) gameState.bench = [];
+  if (!gameState.academy) gameState.academy = defaultGameState.academy;
+  if (!gameState.season) gameState.season = { phase: 'league', matchIndex: 0, calendar: [] };
+  if (!gameState.playerStats) { gameState.playerStats = {}; initPlayerStats(); }
+  if (!gameState.trophies) gameState.trophies = [];
+  if (gameState.trainingPoints === undefined) gameState.trainingPoints = 15;
+  if (gameState.matchesPlayed === undefined) gameState.matchesPlayed = 0;
+  gameState.roster.forEach(p => {
+    if (!p.perks) p.perks = [];
+    if (p.chemistry === undefined) p.chemistry = 100;
+    if (p.joinedAt === undefined) p.joinedAt = 0;
+  });
+  if (!gameState.hltvRankings || !gameState.hltvRankings.length) buildHltvRankings();
+}
+
+function initPlayerStats() {
+  gameState.roster.forEach(p => {
+    if (!gameState.playerStats[p.id]) {
+      gameState.playerStats[p.id] = { kills: 0, deaths: 0, rounds: 0, clutchWins: 0, clutchAttempts: 0 };
+    }
+  });
+}
+
+function buildHltvRankings() {
+  gameState.hltvRankings = TEAM_NAMES.map((name, i) => ({
+    rank: i + 1, name, region: TEAM_PROFILES[name].region, points: TEAM_PROFILES[name].points, winLoss: '0-0'
+  }));
+  // Insert user club
+  gameState.hltvRankings.push({
+    rank: gameState.club.rank, name: gameState.club.name, region: gameState.club.region,
+    points: 340, winLoss: `${gameState.club.wins}-${gameState.club.losses}`
+  });
+  gameState.hltvRankings.sort((a, b) => b.points - a.points);
+  gameState.hltvRankings.forEach((r, i) => r.rank = i + 1);
 }
 
 function showToast(msg) {
   const toast = document.getElementById('game-toast');
   const text = document.getElementById('toast-text');
-  if (toast && text) {
-    text.textContent = msg;
-    toast.classList.remove('translate-y-[-100%]', 'opacity-0', 'pointer-events-none');
-    toast.classList.add('translate-y-0', 'opacity-100');
-    setTimeout(() => {
-      toast.classList.remove('translate-y-0', 'opacity-100');
-      toast.classList.add('translate-y-[-100%]', 'opacity-0', 'pointer-events-none');
-    }, 2500);
-  }
+  if (!toast || !text) return;
+  text.textContent = msg;
+  toast.classList.remove('translate-y-[-100%]', 'opacity-0', 'pointer-events-none');
+  toast.classList.add('translate-y-0', 'opacity-100');
+  setTimeout(() => {
+    toast.classList.remove('translate-y-0', 'opacity-100');
+    toast.classList.add('translate-y-[-100%]', 'opacity-0', 'pointer-events-none');
+  }, 2800);
 }
 
 /* ==========================================================================
-   2. TAB 切换控制 (Tab Controller)
+   2. TAB SYSTEM — Tab 导航
    ========================================================================== */
 function initTabs() {
-  const tabBtns = document.querySelectorAll('.tab-btn');
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tabId = btn.getAttribute('data-tab');
-      switchTab(tabId);
-    });
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
   });
-
   document.querySelectorAll('[data-tab-goto]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      switchTab(btn.getAttribute('data-tab-goto'));
-    });
+    btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab-goto')));
   });
 }
 
 function switchTab(tabId) {
   document.querySelectorAll('.tab-btn').forEach(btn => {
-    if (btn.getAttribute('data-tab') === tabId) btn.classList.add('active');
-    else btn.classList.remove('active');
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
   });
-
-  document.querySelectorAll('.tab-content').forEach(content => {
-    if (content.id === `tab-${tabId}`) content.classList.remove('hidden');
-    else content.classList.add('hidden');
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.classList.toggle('hidden', c.id !== `tab-${tabId}`);
   });
 }
 
 /* ==========================================================================
-   3. 事件监听 (Event Listeners)
+   3. EVENTS — 事件监听
    ========================================================================== */
 function initEvents() {
-  // 保存游戏
   document.getElementById('btn-save-game')?.addEventListener('click', saveGame);
 
-  // 新建战队模态框
+  // New Club Modal
   const modal = document.getElementById('modal-new-club');
-  document.getElementById('btn-new-club')?.addEventListener('click', () => {
-    modal?.classList.remove('hidden');
-  });
-  document.getElementById('modal-close-btn')?.addEventListener('click', () => {
-    modal?.classList.add('hidden');
-  });
+  document.getElementById('btn-new-club')?.addEventListener('click', () => modal?.classList.remove('hidden'));
+  document.getElementById('modal-close-btn')?.addEventListener('click', () => modal?.classList.add('hidden'));
 
-  // 创建战队表单提交
   document.getElementById('form-new-club')?.addEventListener('submit', (e) => {
     e.preventDefault();
-    const nameInput = document.getElementById('input-club-name').value.trim();
-    const regionInput = document.getElementById('input-club-region').value;
-    const coachInput = document.getElementById('input-coach-name').value.trim();
-
-    if (!nameInput) return;
-
-    gameState.club.name = nameInput.toUpperCase();
-    gameState.club.region = regionInput;
-    gameState.club.coach = coachInput || 'Marcus';
-    gameState.club.budget = 100000;
-    gameState.club.wins = 0;
-    gameState.club.losses = 0;
-    gameState.club.rank = 18;
-    gameState.bench = [];
-
-    // 更新 HLTV 排名前排
-    const userEntry = gameState.hltvRankings.find(r => r.rank === 18);
-    if (userEntry) {
-      userEntry.name = gameState.club.name;
-      userEntry.region = gameState.club.region;
-      userEntry.winLoss = '0-0';
-    }
-
-    initNewMatch('FaZe Clan');
-    saveGame();
-    renderAll();
-    modal?.classList.add('hidden');
-    showToast(`成功创立战队 [${gameState.club.name}]！准备进军 Major 赛场！`);
+    const name = document.getElementById('input-club-name').value.trim();
+    if (!name) return;
+    gameState.club.name = name.toUpperCase();
+    gameState.club.region = document.getElementById('input-club-region').value;
+    gameState.club.coach = document.getElementById('input-coach-name').value.trim() || 'Marcus';
+    gameState.club.budget = 100000; gameState.club.wins = 0; gameState.club.losses = 0; gameState.club.rank = 18;
+    gameState.trainingPoints = 15; gameState.matchesPlayed = 0; gameState.bench = []; gameState.trophies = [];
+    gameState.roster.forEach(p => { p.chemistry = 100; p.perks = []; p.joinedAt = 0; });
+    initPlayerStats(); buildHltvRankings(); generateSeasonCalendar(); advanceToNextMatch();
+    saveGame(); renderAll(); modal?.classList.add('hidden');
+    showToast(`战队 [${gameState.club.name}] 正式创立！征战 Major 之路开始！`);
   });
 
-  // 战术风格下拉菜单
+  // Tactic select
   document.getElementById('select-tactic-style')?.addEventListener('change', (e) => {
-    gameState.tacticStyle = e.target.value;
-    saveGame();
-    showToast(`战术风格已调整为: ${e.target.options[e.target.selectedIndex].text}`);
+    gameState.tacticStyle = e.target.value; saveGame();
+    showToast(`战术调整为: ${e.target.options[e.target.selectedIndex].text}`);
   });
 
-  // 比赛按钮
-  document.getElementById('dash-btn-play')?.addEventListener('click', () => {
-    switchTab('match');
+  // Buy TP
+  document.getElementById('btn-buy-tp')?.addEventListener('click', () => {
+    if (gameState.club.budget < 10000) { showToast('资金不足！需要 $10,000 购买训练营课时。'); return; }
+    gameState.club.budget -= 10000; gameState.trainingPoints += 5;
+    saveGame(); renderAll(); showToast('成功购买 5 TP 训练点数！可用于强化选手属性。');
   });
 
+  // Match buttons
+  document.getElementById('dash-btn-play')?.addEventListener('click', () => switchTab('match'));
   document.getElementById('btn-sim-round')?.addEventListener('click', simulateRound);
   document.getElementById('btn-sim-auto')?.addEventListener('click', autoPlayMatch);
   document.getElementById('btn-reset-match')?.addEventListener('click', () => {
-    stopAutoPlay();
-    const opps = ['Natus Vincere', 'Team Vitality', 'FaZe Clan', 'G2 Esports', 'Astralis'];
-    const randomOpp = opps[Math.floor(Math.random() * opps.length)];
-    initNewMatch(randomOpp);
-    renderMatchUI();
-    showToast(`已成功匹配新对手 ${randomOpp}！`);
+    stopAutoPlay(); advanceToNextMatch(); renderAll();
+    showToast(`下一场比赛已准备就绪！`);
   });
 }
 
 /* ==========================================================================
-   4. CS 比赛模拟引擎 (CS ECONOMY & HLTV LIVE SIMULATOR)
+   4. SEASON CALENDAR — 赛季日历系统
    ========================================================================== */
-const MAP_POOL = ['de_inferno', 'de_mirage', 'de_nuke', 'de_anubis', 'de_ancient'];
+const PHASE_CONFIG = {
+  league:          { label: '🟢 联赛 (League)',          count: 6, format: 'BO1' },
+  qualifiers:      { label: '🟡 资格赛 (Qualifiers)',    count: 3, format: 'BO1' },
+  major_groups:    { label: '🔵 Major 小组赛 (Groups)',   count: 3, format: 'BO1' },
+  major_playoffs:  { label: '🏆 Major 淘汰赛 (Playoffs)',count: 3, format: 'BO3' },
+};
+const PHASE_ORDER = ['league', 'qualifiers', 'major_groups', 'major_playoffs'];
 
-function initNewMatch(oppName) {
+function generateSeasonCalendar() {
+  const cal = [];
+  const shuffled = [...TEAM_NAMES].sort(() => Math.random() - 0.5);
+  let idx = 0;
+  PHASE_ORDER.forEach(phase => {
+    const cfg = PHASE_CONFIG[phase];
+    for (let i = 0; i < cfg.count; i++) {
+      cal.push({ opponent: shuffled[idx % shuffled.length], phase, format: cfg.format, result: null, score: null });
+      idx++;
+    }
+  });
+  gameState.season = { phase: 'league', matchIndex: 0, calendar: cal };
+}
+
+function getCurrentSeasonMatch() {
+  return gameState.season.calendar[gameState.season.matchIndex] || null;
+}
+
+function advanceToNextMatch() {
+  const sm = getCurrentSeasonMatch();
+  if (!sm) { endSeason(); return; }
+  gameState.season.phase = sm.phase;
+  initNewMatch(sm.opponent, sm.format);
+}
+
+function endSeason() {
+  showToast('🏆 赛季结束！即将开始新赛季！');
+  generateSeasonCalendar();
+  advanceToNextMatch();
+}
+
+/* ==========================================================================
+   5. MATCH ENGINE — CS 比赛模拟引擎 (支持 BO1 & BO3)
+   ========================================================================== */
+function initNewMatch(oppName, format) {
   stopAutoPlay();
-  
-  // 地图 BP 禁选
-  const selectedMap = MAP_POOL[Math.floor(Math.random() * MAP_POOL.length)];
-  const banned = MAP_POOL.filter(m => m !== selectedMap).slice(0, 2);
+  format = format || 'BO1';
+
+  // Map Veto
+  const shuffledMaps = [...MAP_POOL].sort(() => Math.random() - 0.5);
+  const banned = shuffledMaps.slice(0, 2).map(m => m.toUpperCase());
+  const remaining = shuffledMaps.slice(2);
+
+  let maps;
+  if (format === 'BO3') {
+    maps = remaining.slice(0, 3);
+  } else {
+    maps = [remaining[0]];
+  }
 
   gameState.currentMatch = {
-    opponent: oppName,
-    mapInfo: { selected: selectedMap.toUpperCase() },
-    bannedMaps: banned.map(m => m.toUpperCase()),
-    roundNum: 1,
-    scoreMy: 0,
-    scoreOpp: 0,
-    mySide: 'CT',
-    oppSide: 'T',
-    myMoney: 800,
-    oppMoney: 800,
-    myBuyType: 'PISTOL ($800)',
-    oppBuyType: 'PISTOL ($800)',
-    myLossStreak: 0,
-    oppLossStreak: 0,
-    killFeed: [],
-    isFinished: false
+    opponent: oppName, format,
+    maps: maps.map(m => m.toUpperCase()),
+    bannedMaps: banned,
+    currentMapIndex: 0,
+    seriesScoreMy: 0, seriesScoreOpp: 0,
+    // Current map state
+    roundNum: 1, scoreMy: 0, scoreOpp: 0,
+    mySide: 'CT', oppSide: 'T',
+    myMoney: 800, oppMoney: 800,
+    myBuyType: 'PISTOL ($800)', oppBuyType: 'PISTOL ($800)',
+    myLossStreak: 0, oppLossStreak: 0,
+    killFeed: [], isFinished: false, isMapFinished: false
   };
 }
 
+function getEffectiveStat(player, stat) {
+  let val = player[stat] || 0;
+  // Perk boosts
+  (player.perks || []).forEach(perkName => {
+    const def = PERK_DEFS[perkName];
+    if (def && def.stat === stat) val += def.boost;
+  });
+  // Chemistry modifier
+  const chem = player.chemistry !== undefined ? player.chemistry : 100;
+  if (chem < 70) val = Math.round(val * 0.9);
+  else if (chem >= 90) val += 3;
+  return Math.min(99, val);
+}
+
+function getOppProfile(oppName) {
+  return TEAM_PROFILES[oppName] || { style: 'balanced', avgAim: 85, avgSense: 85, avgClutch: 85, star: 'Unknown', region: '🌍' };
+}
+
 function simulateRound() {
-  const match = gameState.currentMatch;
-  if (!match || match.isFinished) {
-    stopAutoPlay();
-    showToast('本场比赛已结束！点击“重新开始”匹配新对手。');
-    return;
-  }
+  const m = gameState.currentMatch;
+  if (!m || m.isFinished) { stopAutoPlay(); showToast('比赛已结束！'); return; }
 
-  // 1. 半场换边逻辑 (MR12: 第 13 回合换边)
-  if (match.roundNum === 13) {
-    const tempSide = match.mySide;
-    match.mySide = match.oppSide;
-    match.oppSide = tempSide;
+  const opp = getOppProfile(m.opponent);
 
-    match.myMoney = 800;
-    match.oppMoney = 800;
-    match.myLossStreak = 0;
-    match.oppLossStreak = 0;
-    match.myBuyType = 'PISTOL ($800)';
-    match.oppBuyType = 'PISTOL ($800)';
-
-    match.killFeed.unshift(`🔄 --- 半场交换攻防阵营！(现在我方阵营: ${match.mySide}) ---`);
+  // Halftime swap at round 13
+  if (m.roundNum === 13) {
+    [m.mySide, m.oppSide] = [m.oppSide, m.mySide];
+    m.myMoney = 800; m.oppMoney = 800;
+    m.myLossStreak = 0; m.oppLossStreak = 0;
+    m.myBuyType = 'PISTOL ($800)'; m.oppBuyType = 'PISTOL ($800)';
+    m.killFeed.unshift(`🔄 --- 半场换边！我方现为 ${m.mySide} ---`);
+  } else if (m.roundNum === 1) {
+    m.myBuyType = 'PISTOL ($800)'; m.oppBuyType = 'PISTOL ($800)';
   } else {
-    // 买枪与经济判定
-    if (match.roundNum === 1) {
-      match.myBuyType = 'PISTOL ($800)';
-      match.oppBuyType = 'PISTOL ($800)';
-    } else {
-      match.myBuyType = match.myMoney >= 4200 ? 'FULL BUY (AK-47/AWP + 护甲)' : (match.myMoney >= 2200 ? 'FORCE BUY (Galil + Armor)' : 'ECO SAVE ($1,000)');
-      match.oppBuyType = match.oppMoney >= 4200 ? 'FULL BUY (AK-47/AWP + 护甲)' : (match.oppMoney >= 2200 ? 'FORCE BUY (Galil + Armor)' : 'ECO SAVE ($1,000)');
-    }
+    m.myBuyType = m.myMoney >= 4200 ? 'FULL BUY (AK/AWP + 护甲)' : (m.myMoney >= 2200 ? 'FORCE BUY (Galil + Armor)' : 'ECO SAVE');
+    m.oppBuyType = m.oppMoney >= 4200 ? 'FULL BUY (AK/AWP + 护甲)' : (m.oppMoney >= 2200 ? 'FORCE BUY (Galil + Armor)' : 'ECO SAVE');
   }
 
-  // 2. 胜率算力拟合 (Aim, Sense, Morale & Economy)
-  const avgAim = gameState.roster.reduce((sum, p) => sum + p.aim, 0) / 5;
-  const avgClutch = gameState.roster.reduce((sum, p) => sum + p.clutch, 0) / 5;
+  // Calculate power with effective stats, chemistry, perks
+  const avgAim = gameState.roster.reduce((s, p) => s + getEffectiveStat(p, 'aim'), 0) / 5;
+  const avgClutch = gameState.roster.reduce((s, p) => s + getEffectiveStat(p, 'clutch'), 0) / 5;
+  const avgChem = gameState.roster.reduce((s, p) => s + (p.chemistry || 100), 0) / 5;
 
-  let myPower = avgAim * 0.5 + avgClutch * 0.3 + (match.myMoney / 16000) * 25;
-  let oppPower = 85 * 0.5 + 85 * 0.3 + (match.oppMoney / 16000) * 25;
+  let myPower = avgAim * 0.45 + avgClutch * 0.25 + (m.myMoney / 16000) * 20 + (avgChem / 100) * 10;
+  let oppPower = opp.avgAim * 0.45 + opp.avgClutch * 0.25 + (m.oppMoney / 16000) * 20 + 9;
 
-  // 战术加成
-  if (gameState.tacticStyle === 'aggressive') myPower += 6;
-  if (gameState.tacticStyle === 'defensive') myPower += 4;
+  // Tactic modifiers
+  const tactics = { aggressive: 5, defensive: 3, balanced: 0, forcebuy: 2 };
+  myPower += tactics[gameState.tacticStyle] || 0;
+
+  // Opponent style modifiers
+  if (opp.style === 'awp_heavy') oppPower += 3;
+  if (opp.style === 'defensive') oppPower += 2;
+  if (opp.style === 'aggressive') oppPower += 4;
 
   const winProb = Math.max(0.15, Math.min(0.85, myPower / (myPower + oppPower)));
   const myWon = Math.random() < winProb;
 
-  // 3. Live Kill Feed 生成
-  const killer = gameState.roster[Math.floor(Math.random() * gameState.roster.length)];
-  const weapons = ['AK-47', 'M4A1-S', 'AWP', 'Desert Eagle', 'MP9'];
+  // Pick a random player for kill feed
+  const hero = gameState.roster[Math.floor(Math.random() * 5)];
+  const weapons = ['AK-47', 'M4A1-S', 'AWP', 'Desert Eagle', 'USP-S', 'Galil AR', 'MP9'];
   const weapon = weapons[Math.floor(Math.random() * weapons.length)];
+  const logs = [];
+  logs.push(`--- 回合 ${m.roundNum} [${m.maps[m.currentMapIndex]}] (${m.mySide} vs ${m.oppSide}) ---`);
 
-  let roundLog = [];
-  roundLog.push(`--- 回合 ${match.roundNum} (${match.mySide} vs ${match.oppSide}) ---`);
+  // Update player stats
+  const heroStats = gameState.playerStats[hero.id] || { kills: 0, deaths: 0, rounds: 0, clutchWins: 0, clutchAttempts: 0 };
+  heroStats.rounds++;
 
   if (myWon) {
-    match.scoreMy++;
-    match.oppLossStreak++;
-    match.myLossStreak = 0;
+    m.scoreMy++; m.oppLossStreak++; m.myLossStreak = 0;
+    m.myMoney = Math.min(16000, m.myMoney + 3250);
+    m.oppMoney = Math.min(16000, m.oppMoney + 1400 + Math.min(m.oppLossStreak * 500, 2000));
 
-    match.myMoney = Math.min(16000, match.myMoney + 3250);
-    const oppLossBonus = 1400 + Math.min(match.oppLossStreak * 500, 2000);
-    match.oppMoney = Math.min(16000, match.oppMoney + oppLossBonus);
+    const isClutch = Math.random() < 0.2;
+    const kills = Math.floor(Math.random() * 3) + 1;
+    heroStats.kills += kills;
 
-    if (Math.random() < 0.25) {
-      roundLog.push(`💥 [CLUTCH 1v2] ${killer.name} 残局冷静思考，使用 ${weapon} 完成惊天单人收尾！`);
+    if (isClutch) {
+      heroStats.clutchAttempts++; heroStats.clutchWins++;
+      logs.push(`💥 [CLUTCH 1v${Math.floor(Math.random() * 2) + 2}] ${hero.name} 极限残局，${weapon} 连续击杀完成逆转！`);
     } else if (Math.random() < 0.3) {
-      roundLog.push(`💣 [炸弹安放] 我方精准投掷封烟，顺利在 A 包点安放 C4 爆破！`);
+      logs.push(`💣 [炸弹安放] ${hero.name} 精准封烟，顺利安放 C4 并守住包点！`);
     } else {
-      roundLog.push(`🎯 [首杀] ${killer.name} 使用 ${weapon} 爆头击杀对手前压选手！`);
+      logs.push(`🎯 [首杀] ${hero.name} 使用 ${weapon} 爆头击杀 ${opp.star}！`);
     }
   } else {
-    match.scoreOpp++;
-    match.myLossStreak++;
-    match.oppLossStreak = 0;
+    m.scoreOpp++; m.myLossStreak++; m.oppLossStreak = 0;
+    m.oppMoney = Math.min(16000, m.oppMoney + 3250);
+    m.myMoney = Math.min(16000, m.myMoney + 1400 + Math.min(m.myLossStreak * 500, 2000));
 
-    match.oppMoney = Math.min(16000, match.oppMoney + 3250);
-    const myLossBonus = 1400 + Math.min(match.myLossStreak * 500, 2000);
-    match.myMoney = Math.min(16000, match.myMoney + myLossBonus);
+    heroStats.deaths++;
+    if (Math.random() < 0.2) { heroStats.clutchAttempts++; }
 
-    if (Math.random() < 0.25) {
-      roundLog.push(`🛡️ [拆弹成功] 对手回防封烟解弹成功，遗憾丢掉本局。`);
+    if (Math.random() < 0.3) {
+      logs.push(`⚠️ ${opp.star} 使用 AWP 长枪架住关键位，我方突破失败。`);
+    } else if (Math.random() < 0.3) {
+      logs.push(`🛡️ [拆弹] 对手成功回防拆除 C4，遗憾丢掉本回合。`);
     } else {
-      roundLog.push(`⚠️ 对手枪法火力压制，突破点防线告破。`);
+      logs.push(`❌ 对手团队配合火力交叉，我方未能完成回防。`);
     }
   }
 
-  match.killFeed.unshift(...roundLog.reverse());
-  match.roundNum++;
+  gameState.playerStats[hero.id] = heroStats;
+  m.killFeed.unshift(...logs.reverse());
+  m.roundNum++;
 
-  // MR12 胜负判断 (先达 13 分胜利)
-  if (match.scoreMy >= 13 || match.scoreOpp >= 13) {
-    match.isFinished = true;
-    stopAutoPlay();
-    finishMatch();
+  // Check map win (MR12: first to 13)
+  if (m.scoreMy >= 13 || m.scoreOpp >= 13) {
+    finishMap();
   }
 
   renderMatchUI();
 }
 
-function autoPlayMatch() {
-  const match = gameState.currentMatch;
-  if (!match || match.isFinished) return;
+function finishMap() {
+  const m = gameState.currentMatch;
+  const mapWon = m.scoreMy > m.scoreOpp;
+  const mapScore = `${m.scoreMy}:${m.scoreOpp}`;
 
-  if (autoPlayInterval) {
+  if (mapWon) m.seriesScoreMy++;
+  else m.seriesScoreOpp++;
+
+  m.killFeed.unshift(`🗺️ === 地图 ${m.maps[m.currentMapIndex]} 结束！比分 ${mapScore} ${mapWon ? '✅ 我方胜利' : '❌ 对手胜利'} (系列赛 ${m.seriesScoreMy}-${m.seriesScoreOpp}) ===`);
+
+  const winsNeeded = m.format === 'BO3' ? 2 : 1;
+
+  if (m.seriesScoreMy >= winsNeeded || m.seriesScoreOpp >= winsNeeded) {
+    m.isFinished = true; m.isMapFinished = true;
     stopAutoPlay();
-    return;
+    finishMatch();
+  } else {
+    // Next map in BO3
+    m.currentMapIndex++;
+    m.roundNum = 1; m.scoreMy = 0; m.scoreOpp = 0;
+    m.mySide = 'CT'; m.oppSide = 'T';
+    m.myMoney = 800; m.oppMoney = 800;
+    m.myLossStreak = 0; m.oppLossStreak = 0;
+    m.myBuyType = 'PISTOL ($800)'; m.oppBuyType = 'PISTOL ($800)';
+    m.isMapFinished = false;
+    m.killFeed.unshift(`🗺️ --- 即将开始地图 ${m.maps[m.currentMapIndex]} ---`);
   }
-
-  const btnAuto = document.getElementById('btn-sim-auto');
-  if (btnAuto) btnAuto.textContent = '⏸ 暂停自动模拟';
-
-  autoPlayInterval = setInterval(() => {
-    if (match.isFinished) {
-      stopAutoPlay();
-    } else {
-      simulateRound();
-    }
-  }, 180);
-}
-
-function stopAutoPlay() {
-  if (autoPlayInterval) {
-    clearInterval(autoPlayInterval);
-    autoPlayInterval = null;
-  }
-  const btnAuto = document.getElementById('btn-sim-auto');
-  if (btnAuto) btnAuto.textContent = '⚡ 自动模拟整场比赛 (AUTO PLAY)';
 }
 
 function finishMatch() {
-  const match = gameState.currentMatch;
-  const won = match.scoreMy > match.scoreOpp;
+  const m = gameState.currentMatch;
+  const won = m.format === 'BO3' ? m.seriesScoreMy > m.seriesScoreOpp : m.scoreMy > m.scoreOpp;
+
+  // Update season calendar
+  const sm = getCurrentSeasonMatch();
+  if (sm) {
+    sm.result = won ? 'WIN' : 'LOSS';
+    sm.score = m.format === 'BO3' ? `${m.seriesScoreMy}-${m.seriesScoreOpp}` : `${m.scoreMy}:${m.scoreOpp}`;
+  }
+
+  gameState.matchesPlayed++;
+
+  // Chemistry: all starters +5
+  gameState.roster.forEach(p => { p.chemistry = Math.min(100, (p.chemistry || 100) + 5); });
 
   if (won) {
     gameState.club.wins++;
-    gameState.club.budget += 25000;
+    const prize = gameState.season.phase === 'major_playoffs' ? 50000 : 25000;
+    gameState.club.budget += prize;
+    gameState.trainingPoints += 3;
     if (gameState.club.rank > 1) gameState.club.rank--;
-    showToast(`🏆 获得胜利 (${match.scoreMy}:${match.scoreOpp})！赢取赛场大奖 $25,000，HLTV 排名上升至 #${gameState.club.rank}！`);
+
+    // Check Major Champion
+    if (gameState.season.phase === 'major_playoffs' && gameState.season.matchIndex >= gameState.season.calendar.length - 1) {
+      // Find MVP (highest kill player)
+      let mvpId = null, mvpKills = 0;
+      Object.entries(gameState.playerStats).forEach(([id, st]) => {
+        if (st.kills > mvpKills) { mvpKills = st.kills; mvpId = id; }
+      });
+      const mvpPlayer = gameState.roster.find(p => p.id === mvpId);
+      gameState.trophies.push({
+        title: `Major Champion Season ${gameState.trophies.length + 1}`,
+        date: new Date().toLocaleDateString(), mvpPlayer: mvpPlayer ? mvpPlayer.name : 'N/A'
+      });
+      showToast(`🏆🏆🏆 恭喜荣获 MAJOR 冠军！MVP: ${mvpPlayer ? mvpPlayer.name : 'N/A'}！奖金 $${prize.toLocaleString()}！`);
+    } else {
+      showToast(`🏆 胜利！奖金 $${prize.toLocaleString()}，TP +3，排名升至 #${gameState.club.rank}！`);
+    }
   } else {
     gameState.club.losses++;
     gameState.club.budget += 8000;
+    gameState.trainingPoints += 1;
     if (gameState.club.rank < 30) gameState.club.rank++;
-    showToast(`💔 比赛失利 (${match.scoreMy}:${match.scoreOpp})，获得参与奖金 $8,000。继续调整战术再战！`);
+    showToast(`💔 失利，参与奖 $8,000，TP +1。调整战术再战！`);
   }
 
+  // Update HLTV rankings
   const userEntry = gameState.hltvRankings.find(r => r.name === gameState.club.name);
   if (userEntry) {
     userEntry.winLoss = `${gameState.club.wins}-${gameState.club.losses}`;
     userEntry.rank = gameState.club.rank;
   }
 
-  saveGame();
-  renderAll();
+  gameState.season.matchIndex++;
+  saveGame(); renderAll();
+}
+
+function autoPlayMatch() {
+  if (!gameState.currentMatch || gameState.currentMatch.isFinished) return;
+  if (autoPlayInterval) { stopAutoPlay(); return; }
+  const btn = document.getElementById('btn-sim-auto');
+  if (btn) btn.textContent = '⏸ 暂停自动模拟';
+  autoPlayInterval = setInterval(() => {
+    if (gameState.currentMatch.isFinished) stopAutoPlay();
+    else simulateRound();
+  }, 150);
+}
+
+function stopAutoPlay() {
+  if (autoPlayInterval) { clearInterval(autoPlayInterval); autoPlayInterval = null; }
+  const btn = document.getElementById('btn-sim-auto');
+  if (btn) btn.textContent = '⚡ 自动模拟 (AUTO PLAY)';
 }
 
 /* ==========================================================================
-   5. 转会签约与替补席 (TRANSFER & BENCH ENGINE)
+   6. TRAINING & PERKS — 训练与技能树
+   ========================================================================== */
+window.trainStat = function(playerId, stat) {
+  if (gameState.trainingPoints < 2) { showToast('训练点数不足！需要 2 TP。'); return; }
+  const p = gameState.roster.find(r => r.id === playerId);
+  if (!p) return;
+  if (p[stat] >= 99) { showToast(`${p.name} 的 ${stat} 已达上限 99！`); return; }
+  p[stat] = Math.min(99, p[stat] + 2);
+  gameState.trainingPoints -= 2;
+  saveGame(); renderAll();
+  showToast(`${p.name} 的 ${stat} 提升至 ${p[stat]}！`);
+};
+
+window.unlockPerk = function(playerId, perkName) {
+  const p = gameState.roster.find(r => r.id === playerId);
+  if (!p) return;
+  if (p.perks.includes(perkName)) { showToast('已解锁该 Perk！'); return; }
+  const def = PERK_DEFS[perkName];
+  if (!def) return;
+  if (gameState.trainingPoints < def.cost) { showToast(`TP 不足！需要 ${def.cost} TP。`); return; }
+  // Check requirements
+  for (const [stat, minVal] of Object.entries(def.req)) {
+    if ((p[stat] || 0) < minVal) { showToast(`${p.name} 的 ${stat} 未达到 ${minVal} 门槛！`); return; }
+  }
+  p.perks.push(perkName);
+  gameState.trainingPoints -= def.cost;
+  saveGame(); renderAll();
+  showToast(`${def.icon} ${p.name} 解锁 Perk [${perkName}]！${def.desc}`);
+};
+
+/* ==========================================================================
+   7. TRANSFER & BENCH — 转会与替补席
    ========================================================================== */
 window.buyPlayer = function(playerId) {
-  const p = gameState.market.find(m => m.id === playerId);
-  if (!p) return;
+  const src = gameState.market.find(m => m.id === playerId) || gameState.academy.find(a => a.id === playerId);
+  if (!src) return;
+  if (gameState.club.budget < src.value) { showToast('资金不足！'); return; }
 
-  if (gameState.club.budget < p.value) {
-    showToast('俱乐部资金不足！无法完成该转会交易。');
-    return;
-  }
-
-  gameState.club.budget -= p.value;
-
-  // 保持阵容同角色替换或移除枪法最低的选手
-  let replaceIdx = gameState.roster.findIndex(r => r.role === p.role);
+  gameState.club.budget -= src.value;
+  let replaceIdx = gameState.roster.findIndex(r => r.role === src.role);
   if (replaceIdx === -1) {
-    // 若无同角色，替换枪法最低的选手
     replaceIdx = 0;
     for (let i = 1; i < gameState.roster.length; i++) {
       if (gameState.roster[i].aim < gameState.roster[replaceIdx].aim) replaceIdx = i;
     }
   }
-
   const replaced = gameState.roster[replaceIdx];
   replaced.morale = Math.max(60, replaced.morale - 15);
-
-  // 转移至替补席
   gameState.bench.push(replaced);
-  gameState.roster[replaceIdx] = p;
-  gameState.market = gameState.market.filter(m => m.id !== playerId);
 
-  saveGame();
-  renderAll();
-  showToast(`🎉 成功签约 [${p.name}]！替代了 [${replaced.name}] 的首发位置，原选手进入替补席。`);
+  src.chemistry = 50;
+  src.joinedAt = gameState.matchesPlayed;
+  gameState.roster[replaceIdx] = src;
+
+  // Init stats for new player
+  if (!gameState.playerStats[src.id]) {
+    gameState.playerStats[src.id] = { kills: 0, deaths: 0, rounds: 0, clutchWins: 0, clutchAttempts: 0 };
+  }
+
+  gameState.market = gameState.market.filter(m => m.id !== playerId);
+  gameState.academy = gameState.academy.filter(a => a.id !== playerId);
+  saveGame(); renderAll();
+  showToast(`🎉 签约 [${src.name}]！替代 [${replaced.name}]，新选手需要磨合期。`);
 };
 
 /* ==========================================================================
-   6. 全局 UI 渲染引擎 (UI RENDERING ENGINE)
+   8. RENDER ENGINE — UI 渲染引擎
    ========================================================================== */
 function renderAll() {
-  renderHeader();
-  renderDashboard();
-  renderRoster();
-  renderBench();
-  renderTransfers();
-  renderMatchUI();
-  renderRankings();
+  renderHeader(); renderDashboard(); renderTraining(); renderBench();
+  renderTransfers(); renderAcademy(); renderMatchUI(); renderBracket();
+  renderStats(); renderTrophyCabinet(); renderRankings();
 }
+
+function el(id) { return document.getElementById(id); }
+function setEl(id, txt) { const e = el(id); if (e) e.textContent = txt; }
 
 function renderHeader() {
   const c = gameState.club;
-  document.getElementById('header-club-name').textContent = c.name;
-  document.getElementById('header-budget').textContent = `$${c.budget.toLocaleString()}`;
-  document.getElementById('header-rank').textContent = `#${c.rank} WORLD`;
-  document.getElementById('header-record').textContent = `${c.wins}胜 - ${c.losses}负`;
+  setEl('header-club-name', c.name);
+  setEl('header-budget', `$${c.budget.toLocaleString()}`);
+  setEl('header-tp', `${gameState.trainingPoints} TP`);
+  setEl('header-rank', `#${c.rank} WORLD`);
 }
 
 function renderDashboard() {
   const c = gameState.club;
-  document.getElementById('dash-next-opp').textContent = gameState.currentMatch?.opponent || 'FaZe Clan';
-  document.getElementById('dash-avg-aim').textContent = (gameState.roster.reduce((s, p) => s + p.aim, 0) / 5).toFixed(1);
-  document.getElementById('dash-avg-tactics').textContent = (gameState.roster.reduce((s, p) => s + p.sense, 0) / 5).toFixed(1);
-  document.getElementById('dash-avg-morale').textContent = Math.round(gameState.roster.reduce((s, p) => s + p.morale, 0) / 5) + '%';
+  const sm = getCurrentSeasonMatch();
+  setEl('dash-next-opp', sm ? sm.opponent : '赛季结束');
+  setEl('dash-avg-aim', (gameState.roster.reduce((s, p) => s + getEffectiveStat(p, 'aim'), 0) / 5).toFixed(1));
+  setEl('dash-tp-display', `${gameState.trainingPoints} TP`);
+  setEl('dash-avg-morale', Math.round(gameState.roster.reduce((s, p) => s + p.morale, 0) / 5) + '%');
 
-  // 薪资计算 (包含首发与替补)
-  const rosterSalary = gameState.roster.reduce((s, p) => s + p.salary, 0);
-  const benchSalary = (gameState.bench || []).reduce((s, p) => s + p.salary, 0);
-  document.getElementById('dash-monthly-salary').textContent = `$${(rosterSalary + benchSalary).toLocaleString()}`;
+  const totalSalary = gameState.roster.reduce((s, p) => s + p.salary, 0) + (gameState.bench || []).reduce((s, p) => s + p.salary, 0);
+  setEl('dash-monthly-salary', `$${totalSalary.toLocaleString()}`);
 
-  // 5人首发快照
-  const list = document.getElementById('dash-roster-list');
+  // Season info in header
+  const phaseLabel = sm ? PHASE_CONFIG[sm.phase]?.label || sm.phase : '赛季结束';
+  setEl('header-season', `${phaseLabel} | 比赛 ${gameState.season.matchIndex + 1}/${gameState.season.calendar.length}`);
+
+  // Roster snapshot
+  const list = el('dash-roster-list');
   if (list) {
-    list.innerHTML = gameState.roster.map(p => `
-      <div class="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between font-mono text-xs">
-        <div class="flex items-center gap-3">
+    list.innerHTML = gameState.roster.map(p => {
+      const perkBadges = (p.perks || []).map(pk => {
+        const d = PERK_DEFS[pk]; return d ? `<span class="px-1 py-0.5 rounded text-[9px] perk-badge-${d.stat === 'aim' ? 'awp' : d.stat === 'clutch' ? 'clutch' : d.stat === 'sense' ? 'igl' : 'entry'}">${d.icon}</span>` : '';
+      }).join('');
+      const chemColor = p.chemistry >= 90 ? 'text-emerald-400' : p.chemistry >= 70 ? 'text-amber-400' : 'text-rose-400';
+      return `<div class="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between font-mono text-xs">
+        <div class="flex items-center gap-2">
           <span class="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-bold">${p.role}</span>
-          <span class="font-bold text-white">${p.name}</span>
+          <span class="font-bold text-white">${p.name}</span>${perkBadges}
         </div>
-        <div class="flex items-center gap-4 text-slate-400">
-          <span>🎯 Aim: <strong class="text-emerald-400">${p.aim}</strong></span>
-          <span>💥 Clutch: <strong class="text-cyan-400">${p.clutch}</strong></span>
-          <span>💰 月薪: <strong class="text-slate-200">$${p.salary}</strong></span>
+        <div class="flex items-center gap-3 text-slate-400">
+          <span>Aim:<strong class="text-emerald-400">${getEffectiveStat(p, 'aim')}</strong></span>
+          <span>Clutch:<strong class="text-cyan-400">${getEffectiveStat(p, 'clutch')}</strong></span>
+          <span class="${chemColor}">默契:${p.chemistry}%</span>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   }
 
-  // 动态头条新闻
-  const news = document.getElementById('dash-news-list');
+  // News
+  const news = el('dash-news-list');
   if (news) {
-    news.innerHTML = `
-      <div class="p-3 rounded-lg bg-slate-950 border border-slate-800 text-slate-300">
-        🔥 <strong class="text-amber-400">[HLTV]</strong> 战队 <strong>${c.name}</strong> 职业生涯全面开启，冲击 Major 冠军资格！
-      </div>
-      <div class="p-3 rounded-lg bg-slate-950 border border-slate-800 text-slate-300">
-        💰 俱乐部财务状态良好，可用资金 <strong>$${c.budget.toLocaleString()}</strong>。
-      </div>
-    `;
+    const latestResults = gameState.season.calendar.filter(m => m.result).slice(-3).reverse();
+    let newsHtml = `<div class="p-3 rounded-lg bg-slate-950 border border-slate-800 text-slate-300">
+      🔥 <strong class="text-amber-400">[HLTV]</strong> <strong>${c.name}</strong> ${phaseLabel} | 排名 #${c.rank} | 资金 $${c.budget.toLocaleString()}
+    </div>`;
+    latestResults.forEach(r => {
+      const isWin = r.result === 'WIN';
+      newsHtml += `<div class="p-3 rounded-lg bg-slate-950 border ${isWin ? 'border-emerald-500/30' : 'border-rose-500/30'} text-slate-300">
+        ${isWin ? '✅' : '❌'} vs <strong>${r.opponent}</strong> ${r.score} (${PHASE_CONFIG[r.phase]?.label || r.phase})
+      </div>`;
+    });
+    news.innerHTML = newsHtml;
   }
 }
 
-function renderRoster() {
-  const cards = document.getElementById('roster-full-cards');
+function renderTraining() {
+  setEl('roster-tp-val', `${gameState.trainingPoints} TP`);
+  const cards = el('roster-training-cards');
   if (!cards) return;
 
-  cards.innerHTML = gameState.roster.map(p => `
-    <div class="rounded-xl bg-cs-card border border-slate-800 p-4 space-y-3 font-mono text-xs shadow-xl relative group hover:border-amber-500/50 transition-all">
+  cards.innerHTML = gameState.roster.map(p => {
+    const perkBadges = (p.perks || []).map(pk => {
+      const d = PERK_DEFS[pk]; return d ? `<div class="px-2 py-0.5 rounded-full text-[9px] font-bold perk-badge-${d.stat === 'aim' ? 'awp' : d.stat === 'clutch' ? 'clutch' : d.stat === 'sense' ? 'igl' : 'entry'}">${d.icon} ${pk}</div>` : '';
+    }).join('');
+
+    // Available perks to unlock
+    const availablePerks = Object.entries(PERK_DEFS).filter(([name]) => !p.perks.includes(name)).map(([name, def]) => {
+      const meetsReq = Object.entries(def.req).every(([stat, min]) => (p[stat] || 0) >= min);
+      return `<button onclick="unlockPerk('${p.id}','${name}')" class="px-2 py-1 rounded text-[9px] font-bold ${meetsReq ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}" ${meetsReq ? '' : 'disabled'} title="${def.desc} (需 ${def.cost} TP)">${def.icon} ${name} (${def.cost}TP)</button>`;
+    }).join('');
+
+    const chemColor = p.chemistry >= 90 ? 'text-emerald-400' : p.chemistry >= 70 ? 'text-amber-400' : 'text-rose-400';
+
+    return `<div class="rounded-xl bg-cs-card border border-slate-800 p-4 space-y-3 font-mono text-xs shadow-xl hover:border-amber-500/50 transition-all">
       <div class="flex items-center justify-between border-b border-slate-800 pb-2">
         <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold text-[10px]">${p.role}</span>
-        <span class="text-slate-500 text-[10px]">VALUE: $${(p.value/1000).toFixed(0)}k</span>
+        <span class="${chemColor} text-[10px]">默契 ${p.chemistry}%</span>
       </div>
-
       <div class="text-base font-extrabold text-white">${p.name}</div>
-
-      <div class="space-y-1.5 pt-1 text-[11px]">
-        <div class="flex justify-between"><span>Aim 枪法:</span><strong class="text-emerald-400">${p.aim}</strong></div>
-        <div class="flex justify-between"><span>Sense 意识:</span><strong class="text-cyan-400">${p.sense}</strong></div>
-        <div class="flex justify-between"><span>Clutch 残局:</span><strong class="text-amber-400">${p.clutch}</strong></div>
-        <div class="flex justify-between"><span>Speed 身法:</span><strong class="text-purple-400">${p.movement}</strong></div>
+      <div class="flex flex-wrap gap-1">${perkBadges || '<span class="text-slate-500 text-[9px]">暂无 Perk</span>'}</div>
+      <div class="space-y-1.5 text-[11px]">
+        <div class="flex justify-between items-center"><span>Aim 枪法: <strong class="text-emerald-400">${p.aim}</strong></span><button onclick="trainStat('${p.id}','aim')" class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[9px] hover:bg-emerald-500/30">+2 (2TP)</button></div>
+        <div class="flex justify-between items-center"><span>Sense 意识: <strong class="text-cyan-400">${p.sense}</strong></span><button onclick="trainStat('${p.id}','sense')" class="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 text-[9px] hover:bg-cyan-500/30">+2 (2TP)</button></div>
+        <div class="flex justify-between items-center"><span>Clutch 残局: <strong class="text-amber-400">${p.clutch}</strong></span><button onclick="trainStat('${p.id}','clutch')" class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[9px] hover:bg-amber-500/30">+2 (2TP)</button></div>
+        <div class="flex justify-between items-center"><span>Speed 身法: <strong class="text-purple-400">${p.movement}</strong></span><button onclick="trainStat('${p.id}','movement')" class="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 text-[9px] hover:bg-purple-500/30">+2 (2TP)</button></div>
         <div class="flex justify-between"><span>Morale 士气:</span><strong class="text-slate-200">${p.morale}%</strong></div>
       </div>
-
-      <div class="pt-2 border-t border-slate-800 text-[10px] text-slate-400 flex items-center justify-between">
-        <span>月薪: $${p.salary}</span>
-        <span class="text-emerald-400">首发契约</span>
+      <div class="pt-2 border-t border-slate-800 space-y-1">
+        <div class="text-[9px] text-slate-400 font-bold">解锁 Perk 特长:</div>
+        <div class="flex flex-wrap gap-1">${availablePerks}</div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function renderBench() {
-  const benchList = document.getElementById('bench-list');
+  const benchList = el('bench-list');
   if (!benchList) return;
-
-  if (!gameState.bench || gameState.bench.length === 0) {
-    benchList.innerHTML = `<div class="text-slate-500 text-xs font-mono italic">替补席暂无选手。从转会市场签约新选手后，原选手将进入替补席。</div>`;
+  if (!gameState.bench.length) {
+    benchList.innerHTML = '<div class="text-slate-500 text-xs font-mono italic">替补席暂无选手。</div>';
   } else {
     benchList.innerHTML = gameState.bench.map(p => `
       <div class="p-3 rounded-lg bg-slate-950 border border-rose-500/30 flex items-center justify-between font-mono text-xs">
@@ -536,129 +723,193 @@ function renderBench() {
           <span class="text-slate-500 text-[10px]">(${p.role})</span>
         </div>
         <div class="flex items-center gap-4 text-slate-400">
-          <span>🎯 Aim: <strong class="text-emerald-400">${p.aim}</strong></span>
-          <span>士气: <strong class="text-amber-400">${p.morale}%</strong></span>
-          <span>月薪: <strong class="text-slate-200">$${p.salary}</strong></span>
+          <span>Aim:<strong class="text-emerald-400">${p.aim}</strong></span>
+          <span>士气:<strong class="text-amber-400">${p.morale}%</strong></span>
         </div>
-      </div>
-    `).join('');
+      </div>`).join('');
   }
 }
 
 function renderTransfers() {
-  document.getElementById('market-budget-display').textContent = `$${gameState.club.budget.toLocaleString()}`;
-  const grid = document.getElementById('market-players-grid');
+  setEl('market-budget-display', `$${gameState.club.budget.toLocaleString()}`);
+  const grid = el('market-players-grid');
   if (!grid) return;
-
   grid.innerHTML = gameState.market.map(p => `
     <div class="rounded-xl bg-cs-card border border-slate-800 p-5 space-y-4 font-mono text-xs shadow-xl hover:border-emerald-500/40 transition-all">
       <div class="flex items-center justify-between border-b border-slate-800 pb-2">
         <span class="px-2.5 py-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-bold text-[10px]">${p.role}</span>
         <span class="text-emerald-400 font-bold text-sm">$${p.value.toLocaleString()}</span>
       </div>
-
-      <div>
-        <div class="text-lg font-extrabold text-white">${p.name}</div>
-        <div class="text-slate-400 text-[11px]">期望月薪: $${p.salary}/月</div>
-      </div>
-
+      <div><div class="text-lg font-extrabold text-white">${p.name}</div><div class="text-slate-400 text-[11px]">月薪: $${p.salary}/月</div></div>
       <div class="grid grid-cols-2 gap-2 text-[11px] bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-        <div>Aim 枪力: <strong class="text-emerald-400">${p.aim}</strong></div>
-        <div>Sense 意识: <strong class="text-cyan-400">${p.sense}</strong></div>
-        <div>Clutch 残局: <strong class="text-amber-400">${p.clutch}</strong></div>
-        <div>Speed 身法: <strong class="text-purple-400">${p.movement}</strong></div>
+        <div>Aim: <strong class="text-emerald-400">${p.aim}</strong></div><div>Sense: <strong class="text-cyan-400">${p.sense}</strong></div>
+        <div>Clutch: <strong class="text-amber-400">${p.clutch}</strong></div><div>Speed: <strong class="text-purple-400">${p.movement}</strong></div>
       </div>
+      <div class="text-[10px] text-rose-400">⚠️ 签约后默契值从 50% 开始磨合</div>
+      <button onclick="buyPlayer('${p.id}')" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-lg shadow-emerald-500/20 transition-all">💰 签约 ($${p.value.toLocaleString()})</button>
+    </div>`).join('');
+}
 
-      <button onclick="buyPlayer('${p.id}')" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-lg shadow-emerald-500/20 transition-all">
-        💰 签约该选手 ($${p.value.toLocaleString()})
-      </button>
-    </div>
-  `).join('');
+function renderAcademy() {
+  const grid = el('academy-players-grid');
+  if (!grid) return;
+  if (!gameState.academy.length) {
+    grid.innerHTML = '<div class="text-slate-500 text-xs font-mono italic col-span-3">青训营暂无可选新人。</div>';
+    return;
+  }
+  grid.innerHTML = gameState.academy.map(p => `
+    <div class="rounded-xl bg-cs-card border border-emerald-500/20 p-5 space-y-4 font-mono text-xs shadow-xl hover:border-emerald-500/40 transition-all">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <span class="px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold text-[10px]">🌱 ${p.role}</span>
+        <span class="text-emerald-400 font-bold text-sm">$${p.value.toLocaleString()}</span>
+      </div>
+      <div><div class="text-lg font-extrabold text-white">${p.name}</div><div class="text-emerald-400 text-[11px]">青训新秀 · 月薪仅 $${p.salary}/月</div></div>
+      <div class="grid grid-cols-2 gap-2 text-[11px] bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+        <div>Aim: <strong class="text-emerald-400">${p.aim}</strong></div><div>Sense: <strong class="text-cyan-400">${p.sense}</strong></div>
+        <div>Clutch: <strong class="text-amber-400">${p.clutch}</strong></div><div>Morale: <strong class="text-white">${p.morale}%</strong></div>
+      </div>
+      <div class="text-[10px] text-cyan-400">💡 属性较低但高士气 & 可通过训练培养</div>
+      <button onclick="buyPlayer('${p.id}')" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-lg shadow-emerald-500/20 transition-all">🌱 签约青训新人 ($${p.value.toLocaleString()})</button>
+    </div>`).join('');
 }
 
 function renderMatchUI() {
   const m = gameState.currentMatch;
   if (!m) return;
+  const opp = getOppProfile(m.opponent);
 
-  document.getElementById('match-opp-team-name').textContent = m.opponent;
-  document.getElementById('score-my').textContent = m.scoreMy;
-  document.getElementById('score-opp').textContent = m.scoreOpp;
-  document.getElementById('match-round-counter').textContent = `ROUND ${m.roundNum} / 24`;
+  setEl('match-my-team-name', gameState.club.name);
+  setEl('match-opp-team-name', m.opponent);
+  setEl('score-my', m.scoreMy); setEl('score-opp', m.scoreOpp);
+  setEl('match-round-counter', `ROUND ${m.roundNum} / 24 ${m.format === 'BO3' ? `| MAP ${m.currentMapIndex + 1}/3 (${m.seriesScoreMy}-${m.seriesScoreOpp})` : ''}`);
 
-  // 攻防阵营样式与文本
-  const mySideText = document.getElementById('match-my-side-text');
-  const oppSideText = document.getElementById('match-opp-side-text');
-  const myBadge = document.getElementById('badge-my-side');
-  const oppBadge = document.getElementById('badge-opp-side');
-
+  // Side badges
+  const mySideText = el('match-my-side-text'), oppSideText = el('match-opp-side-text');
+  const myBadge = el('badge-my-side'), oppBadge = el('badge-opp-side');
   if (mySideText && oppSideText && myBadge && oppBadge) {
-    mySideText.textContent = `SIDE: ${m.mySide} (${m.mySide === 'CT' ? '防守方' : '进攻方'})`;
-    oppSideText.textContent = `SIDE: ${m.oppSide} (${m.oppSide === 'CT' ? '防守方' : '进攻方'})`;
-    myBadge.textContent = m.mySide;
-    oppBadge.textContent = m.oppSide;
+    mySideText.textContent = `SIDE: ${m.mySide} (${m.mySide === 'CT' ? '防守' : '进攻'})`;
+    oppSideText.textContent = `SIDE: ${m.oppSide} (${m.oppSide === 'CT' ? '防守' : '进攻'})`;
+    myBadge.textContent = m.mySide; oppBadge.textContent = m.oppSide;
+    const ctClass = 'w-12 h-12 rounded-xl bg-cs-ct/20 border border-cs-ct/40 flex items-center justify-center font-extrabold text-cs-ct font-mono text-lg';
+    const tClass = 'w-12 h-12 rounded-xl bg-cs-t/20 border border-cs-t/40 flex items-center justify-center font-extrabold text-cs-t font-mono text-lg';
+    myBadge.className = m.mySide === 'CT' ? ctClass : tClass;
+    oppBadge.className = m.mySide === 'CT' ? tClass : ctClass;
+  }
 
-    if (m.mySide === 'CT') {
-      myBadge.className = 'w-12 h-12 rounded-xl bg-cs-ct/20 border border-cs-ct/40 flex items-center justify-center font-extrabold text-cs-ct font-mono text-lg';
-      oppBadge.className = 'w-12 h-12 rounded-xl bg-cs-t/20 border border-cs-t/40 flex items-center justify-center font-extrabold text-cs-t font-mono text-lg';
+  // Map & Ban info
+  setEl('match-map-name', `${m.maps[m.currentMapIndex]} (${m.mySide} vs ${m.oppSide})`);
+  setEl('match-ban-info', `BAN: ${m.bannedMaps.join(', ')} | ${m.format}`);
+
+  // Stage title
+  const sm = getCurrentSeasonMatch();
+  setEl('major-stage-title', sm ? `${PHASE_CONFIG[sm.phase]?.label || sm.phase} | ${m.format}` : '');
+
+  // Economy
+  setEl('eco-my-team', gameState.club.name); setEl('eco-opp-team', m.opponent);
+  setEl('eco-my-buy-type', `BUY: ${m.myBuyType}`); setEl('eco-opp-buy-type', `BUY: ${m.oppBuyType}`);
+  setEl('eco-my-money', `$${m.myMoney.toLocaleString()}`); setEl('eco-opp-money', `$${m.oppMoney.toLocaleString()}`);
+
+  // Kill Feed
+  const fb = el('kill-feed-box');
+  if (fb) {
+    if (!m.killFeed.length) {
+      fb.innerHTML = '<div class="text-slate-500 italic">点击"模拟下一回合"开始体验热血 CS 对决...</div>';
     } else {
-      myBadge.className = 'w-12 h-12 rounded-xl bg-cs-t/20 border border-cs-t/40 flex items-center justify-center font-extrabold text-cs-t font-mono text-lg';
-      oppBadge.className = 'w-12 h-12 rounded-xl bg-cs-ct/20 border border-cs-ct/40 flex items-center justify-center font-extrabold text-cs-ct font-mono text-lg';
-    }
-  }
-
-  // 地图 BP
-  const mapNameEl = document.getElementById('match-map-name');
-  if (mapNameEl && m.mapInfo) {
-    mapNameEl.textContent = `${m.mapInfo.selected} (${m.mySide} vs ${m.oppSide})`;
-  }
-
-  const banInfoEl = document.getElementById('match-ban-info');
-  if (banInfoEl && m.bannedMaps) {
-    banInfoEl.textContent = `BAN: ${m.bannedMaps.join(', ')}`;
-  }
-
-  // 经济与买枪
-  document.getElementById('eco-my-buy-type').textContent = `BUY: ${m.myBuyType}`;
-  document.getElementById('eco-opp-buy-type').textContent = `BUY: ${m.oppBuyType}`;
-  document.getElementById('eco-my-money').textContent = `$${m.myMoney.toLocaleString()}`;
-  document.getElementById('eco-opp-money').textContent = `$${m.oppMoney.toLocaleString()}`;
-
-  // Kill Feed 自动置底
-  const feedBox = document.getElementById('kill-feed-box');
-  if (feedBox) {
-    if (m.killFeed.length === 0) {
-      feedBox.innerHTML = `<div class="text-slate-500 italic">点击“模拟下一回合”开始体验热血 CS 对决...</div>`;
-    } else {
-      feedBox.innerHTML = m.killFeed.map(log => {
+      fb.innerHTML = m.killFeed.map(log => {
         let cls = 'text-slate-300';
-        if (log.includes('---')) cls = 'text-amber-400 font-bold border-t border-slate-800 pt-2';
+        if (log.includes('---') || log.includes('===')) cls = 'text-amber-400 font-bold border-t border-slate-800 pt-2';
         else if (log.includes('CLUTCH')) cls = 'text-amber-300 font-bold bg-amber-500/10 p-1 rounded';
-        else if (log.includes('爆头') || log.includes('首杀')) cls = 'text-emerald-400 font-bold';
-        else if (log.includes('输掉') || log.includes('失败')) cls = 'text-rose-400';
-        else if (log.includes('炸弹')) cls = 'text-orange-400';
-        else if (log.includes('拆弹')) cls = 'text-cyan-400';
+        else if (log.includes('首杀') || log.includes('爆头')) cls = 'text-emerald-400 font-bold';
+        else if (log.includes('失败') || log.includes('❌')) cls = 'text-rose-400';
+        else if (log.includes('炸弹') || log.includes('C4')) cls = 'text-orange-400';
+        else if (log.includes('拆弹') || log.includes('🛡️')) cls = 'text-cyan-400';
         return `<div class="${cls}">${log}</div>`;
       }).join('');
-
-      feedBox.scrollTop = feedBox.scrollHeight;
+      fb.scrollTop = fb.scrollHeight;
     }
   }
 }
 
-function renderRankings() {
-  const tbody = document.getElementById('rankings-tbody');
+function renderBracket() {
+  const view = el('major-bracket-view');
+  if (!view) return;
+
+  const playoffMatches = gameState.season.calendar.filter(m => m.phase === 'major_playoffs');
+  if (!playoffMatches.length) {
+    view.innerHTML = `<div class="col-span-3 text-slate-500 text-xs italic py-8">Major 淘汰赛尚未开始。完成联赛和资格赛后即可解锁淘汰树。</div>`;
+    return;
+  }
+
+  const stages = ['四分之一决赛', '半决赛', '总决赛'];
+  view.innerHTML = playoffMatches.map((m, i) => {
+    const isPlayed = !!m.result;
+    const isWin = m.result === 'WIN';
+    const borderColor = isPlayed ? (isWin ? 'border-emerald-500/50' : 'border-rose-500/50') : 'border-amber-500/30';
+    return `<div class="rounded-xl bg-slate-950 border ${borderColor} p-4 space-y-2">
+      <div class="text-amber-400 font-bold text-[10px]">${stages[i] || 'BO3'}</div>
+      <div class="text-white font-extrabold">${gameState.club.name}</div>
+      <div class="text-slate-500">VS</div>
+      <div class="text-cs-t font-bold">${m.opponent}</div>
+      <div class="text-[10px] ${isWin ? 'text-emerald-400' : isPlayed ? 'text-rose-400' : 'text-slate-500'}">
+        ${isPlayed ? `${m.score} ${isWin ? '✅ WIN' : '❌ LOSS'}` : '🔜 待比赛'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderStats() {
+  const tbody = el('stats-tbody');
   if (!tbody) return;
 
-  tbody.innerHTML = gameState.hltvRankings.map(r => `
-    <tr class="${r.name === gameState.club.name ? 'bg-amber-500/10 font-bold text-amber-400' : 'hover:bg-slate-900/60'} transition-colors">
+  tbody.innerHTML = gameState.roster.map(p => {
+    const st = gameState.playerStats[p.id] || { kills: 0, deaths: 0, rounds: 0, clutchWins: 0, clutchAttempts: 0 };
+    const kd = st.deaths > 0 ? (st.kills / st.deaths).toFixed(2) : st.kills.toFixed(2);
+    const kast = st.rounds > 0 ? Math.min(100, Math.round((st.kills + st.clutchWins) / st.rounds * 100 + 40)) : 0;
+    const rating = st.rounds > 0 ? Math.min(2.0, ((st.kills * 0.8 + st.clutchWins * 2) / Math.max(1, st.rounds) + 0.5)).toFixed(2) : '0.00';
+
+    const perkBadges = (p.perks || []).map(pk => { const d = PERK_DEFS[pk]; return d ? d.icon : ''; }).join(' ');
+
+    return `<tr class="hover:bg-slate-900/60 transition-colors">
+      <td class="p-4 font-bold text-white">${p.name} ${perkBadges}</td>
+      <td class="p-4"><span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[10px]">${p.role}</span></td>
+      <td class="p-4 text-emerald-400 font-bold">${st.kills}</td>
+      <td class="p-4 ${parseFloat(kd) >= 1.0 ? 'text-emerald-400' : 'text-rose-400'} font-bold">${kd}</td>
+      <td class="p-4 text-cyan-400">${kast}%</td>
+      <td class="p-4 ${parseFloat(rating) >= 1.0 ? 'text-amber-400' : 'text-slate-400'} font-bold">${rating}</td>
+      <td class="p-4 text-purple-400 font-bold">${st.clutchWins} / ${st.clutchAttempts}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTrophyCabinet() {
+  const cab = el('trophy-cabinet');
+  if (!cab) return;
+  if (!gameState.trophies.length) {
+    cab.innerHTML = '<div class="col-span-3 text-slate-500 text-xs italic py-4">尚未获得任何 Major 冠军奖杯。赢得 Major 淘汰赛冠军后，奖杯将在此展示！</div>';
+    return;
+  }
+  cab.innerHTML = gameState.trophies.map(t => `
+    <div class="rounded-xl bg-slate-950 border border-amber-500/50 p-5 text-center space-y-2 trophy-gold">
+      <div class="text-4xl">🏆</div>
+      <div class="text-amber-400 font-extrabold text-sm">${t.title}</div>
+      <div class="text-slate-400 text-[10px]">${t.date}</div>
+      <div class="text-cyan-400 font-bold text-[11px]">MVP: ${t.mvpPlayer}</div>
+    </div>`).join('');
+}
+
+function renderRankings() {
+  const tbody = el('rankings-tbody');
+  if (!tbody) return;
+  // Sort by rank
+  gameState.hltvRankings.sort((a, b) => a.rank - b.rank);
+  tbody.innerHTML = gameState.hltvRankings.map(r => {
+    const isUser = r.name === gameState.club.name;
+    return `<tr class="${isUser ? 'bg-amber-500/10 font-bold text-amber-400' : 'hover:bg-slate-900/60'} transition-colors">
       <td class="p-4 font-bold">#${r.rank}</td>
-      <td class="p-4 flex items-center gap-2">
-        <span>${r.name}</span>
-        ${r.name === gameState.club.name ? '<span class="px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 text-[10px]">YOUR CLUB</span>' : ''}
-      </td>
+      <td class="p-4 flex items-center gap-2"><span>${r.name}</span>${isUser ? '<span class="px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 text-[10px]">YOUR CLUB</span>' : ''}</td>
       <td class="p-4">${r.region}</td>
       <td class="p-4 text-emerald-400 font-bold">${r.points} pts</td>
       <td class="p-4 text-slate-400">${r.winLoss}</td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
