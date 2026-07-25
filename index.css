@@ -1,0 +1,41 @@
+/* Custom Esports Styling for Counter-Manager 2026 */
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #070a12;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.6);
+}
+
+.tab-btn.active {
+  background-color: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+}
+
+/* Kill feed item glow */
+.kill-item-headshot {
+  border-left: 3px solid #f43f5e;
+}
+.kill-item-plant {
+  border-left: 3px solid #f97316;
+}
+.kill-item-defuse {
+  border-left: 3px solid #38bdf8;
+}
+.kill-item-clutch {
+  border-left: 3px solid #f59e0b;
+}
