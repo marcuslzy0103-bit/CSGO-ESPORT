@@ -913,3 +913,365 @@ function renderRankings() {
     </tr>`;
   }).join('');
 }
+
+/* ==========================================================================
+   9. 2D LIVE RADAR ENGINE — 2D 实时战术雷达地图模拟引擎
+   ========================================================================== */
+let radarCanvas = null;
+let radarCtx = null;
+let radarAnimationId = null;
+
+// 雷达中的 10 个选手的状态坐标
+let radarEntities = {
+  cts: [],
+  ts: [],
+  tracers: [], // 枪火弹道射线
+  smokes: [],  // 烟雾弹
+  c4: { active: false, x: 0, y: 0, plantedAt: null, timer: 0 },
+  roundPhase: 'PREP' // PREP, ENGAGE, PLANTED, END
+};
+
+// CS 地图经典战术区域坐标基准 (800 x 450 Canvas)
+const RADAR_ZONES = {
+  ctSpawn: { x: 700, y: 225 },
+  tSpawn:  { x: 100, y: 225 },
+  siteA:   { x: 550, y: 100, label: 'A SITE' },
+  siteB:   { x: 550, y: 350, label: 'B SITE' },
+  mid:     { x: 400, y: 225, label: 'MIDDLE' },
+  aLong:   { x: 300, y: 100, label: 'A LONG' },
+  bApps:   { x: 300, y: 350, label: 'B APPS' },
+  banana:  { x: 450, y: 330, label: 'BANANA' },
+};
+
+function initRadarCanvas() {
+  radarCanvas = document.getElementById('radar-canvas');
+  if (!radarCanvas) return;
+  radarCtx = radarCanvas.getContext('2d');
+  resetRadarPositions();
+  if (!radarAnimationId) {
+    requestAnimationFrame(radarLoop);
+  }
+}
+
+function resetRadarPositions() {
+  const m = gameState.currentMatch;
+  const isUserCT = m ? m.mySide === 'CT' : true;
+  const opp = m ? getOppProfile(m.opponent) : null;
+
+  const ctNames = isUserCT 
+    ? gameState.roster.map(p => p.name) 
+    : [opp?.star || 'OppStar', 'Enemy2', 'Enemy3', 'Enemy4', 'Enemy5'];
+  
+  const tNames = !isUserCT 
+    ? gameState.roster.map(p => p.name) 
+    : [opp?.star || 'OppStar', 'Enemy2', 'Enemy3', 'Enemy4', 'Enemy5'];
+
+  radarEntities.cts = ctNames.map((name, i) => ({
+    id: `ct_${i}`, name, team: 'CT',
+    x: RADAR_ZONES.ctSpawn.x + (Math.random() * 40 - 20),
+    y: RADAR_ZONES.ctSpawn.y + (i * 30 - 60),
+    targetX: RADAR_ZONES.ctSpawn.x,
+    targetY: RADAR_ZONES.ctSpawn.y,
+    hp: 100, isAlive: true,
+    color: '#38bdf8' // 蓝色
+  }));
+
+  radarEntities.ts = tNames.map((name, i) => ({
+    id: `t_${i}`, name, team: 'T',
+    x: RADAR_ZONES.tSpawn.x + (Math.random() * 40 - 20),
+    y: RADAR_ZONES.tSpawn.y + (i * 30 - 60),
+    targetX: RADAR_ZONES.tSpawn.x,
+    targetY: RADAR_ZONES.tSpawn.y,
+    hp: 100, isAlive: true,
+    color: '#f97316' // 橙色
+  }));
+
+  radarEntities.tracers = [];
+  radarEntities.smokes = [];
+  radarEntities.c4 = { active: false, x: 0, y: 0, plantedAt: null, timer: 0 };
+  radarEntities.roundPhase = 'PREP';
+
+  const alertBanner = document.getElementById('c4-alert-banner');
+  if (alertBanner) alertBanner.classList.add('hidden');
+  
+  const tag = document.getElementById('radar-status-tag');
+  if (tag) {
+    tag.textContent = '准备阶段 (PREP)';
+    tag.className = 'px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold';
+  }
+}
+
+// 模拟回合时触发现场人物点对战与走位
+function triggerRadarBattle(myWon) {
+  if (!radarCtx) initRadarCanvas();
+
+  const isA = Math.random() < 0.5;
+  const targetSite = isA ? RADAR_ZONES.siteA : RADAR_ZONES.siteB;
+  const targetChoke = isA ? RADAR_ZONES.aLong : RADAR_ZONES.bApps;
+
+  radarEntities.roundPhase = 'ENGAGE';
+  const tag = document.getElementById('radar-status-tag');
+  if (tag) {
+    tag.textContent = `交火阶段 (RUSH ${isA ? 'A' : 'B'})`;
+    tag.className = 'px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-400 font-bold animate-pulse';
+  }
+
+  // T 点向前推进
+  radarEntities.ts.forEach((t, i) => {
+    if (!t.isAlive) return;
+    t.targetX = targetChoke.x + Math.random() * 80 - 40;
+    t.targetY = targetChoke.y + Math.random() * 80 - 40;
+  });
+
+  // CT 点防守关键点
+  radarEntities.cts.forEach((ct, i) => {
+    if (!ct.isAlive) return;
+    if (i < 3) {
+      ct.targetX = targetSite.x + Math.random() * 60 - 30;
+      ct.targetY = targetSite.y + Math.random() * 60 - 30;
+    } else {
+      ct.targetX = RADAR_ZONES.mid.x + Math.random() * 50 - 25;
+      ct.targetY = RADAR_ZONES.mid.y + Math.random() * 50 - 25;
+    }
+  });
+
+  // 1 秒后触发包点交火与 C4 爆破
+  setTimeout(() => {
+    // 烟雾弹效果
+    radarEntities.smokes.push({ x: targetSite.x + (Math.random() * 40 - 20), y: targetSite.y + (Math.random() * 40 - 20), radius: 35, opacity: 0.8 });
+
+    // T 进点
+    radarEntities.ts.forEach(t => {
+      if (t.isAlive) {
+        t.targetX = targetSite.x + Math.random() * 70 - 35;
+        t.targetY = targetSite.y + Math.random() * 70 - 35;
+      }
+    });
+
+    // 生成弹道 Tracer
+    const aliveCTs = radarEntities.cts.filter(c => c.isAlive);
+    const aliveTs = radarEntities.ts.filter(t => t.isAlive);
+
+    for (let k = 0; k < 6; k++) {
+      if (aliveCTs.length && aliveTs.length) {
+        const ct = aliveCTs[Math.floor(Math.random() * aliveCTs.length)];
+        const t = aliveTs[Math.floor(Math.random() * aliveTs.length)];
+        radarEntities.tracers.push({
+          x1: ct.x, y1: ct.y, x2: t.x, y2: t.y, opacity: 1.0, color: '#f59e0b'
+        });
+      }
+    }
+
+    // 判定淘汰伤亡点
+    if (myWon) {
+      // 对手方多死几个点
+      const loserTeam = gameState.currentMatch?.mySide === 'CT' ? radarEntities.ts : radarEntities.cts;
+      const winnerTeam = gameState.currentMatch?.mySide === 'CT' ? radarEntities.cts : radarEntities.ts;
+      
+      loserTeam.filter(p => p.isAlive).slice(0, 3).forEach(p => { p.isAlive = false; p.hp = 0; });
+      winnerTeam.filter(p => p.isAlive).slice(0, 1).forEach(p => { p.hp = 30; });
+    } else {
+      const loserTeam = gameState.currentMatch?.mySide === 'CT' ? radarEntities.cts : radarEntities.ts;
+      loserTeam.filter(p => p.isAlive).slice(0, 3).forEach(p => { p.isAlive = false; p.hp = 0; });
+    }
+
+    // C4 炸弹安放动画判定
+    if (Math.random() < 0.6) {
+      radarEntities.c4.active = true;
+      radarEntities.c4.x = targetSite.x;
+      radarEntities.c4.y = targetSite.y;
+      radarEntities.c4.plantedAt = isA ? 'A SITE' : 'B SITE';
+      
+      const alertBanner = document.getElementById('c4-alert-banner');
+      if (alertBanner) alertBanner.classList.remove('hidden');
+    }
+  }, 400);
+}
+
+// 60FPS 实时 Canvas 渲染 Loop
+function radarLoop() {
+  if (radarCtx && radarCanvas) {
+    drawRadarScene();
+  }
+  requestAnimationFrame(radarLoop);
+}
+
+function drawRadarScene() {
+  const width = radarCanvas.width;
+  const height = radarCanvas.height;
+
+  // 1. 清空与背景底色
+  radarCtx.fillStyle = '#090d16';
+  radarCtx.fillRect(0, 0, width, height);
+
+  // 网格战术背景
+  radarCtx.strokeStyle = 'rgba(30, 41, 59, 0.5)';
+  radarCtx.lineWidth = 1;
+  for (let x = 0; x < width; x += 40) {
+    radarCtx.beginPath(); radarCtx.moveTo(x, 0); radarCtx.lineTo(x, height); radarCtx.stroke();
+  }
+  for (let y = 0; y < height; y += 40) {
+    radarCtx.beginPath(); radarCtx.moveTo(0, y); radarCtx.lineTo(width, y); radarCtx.stroke();
+  }
+
+  // 2. 绘制 CS 经典地图墙体与包点 layout
+  drawMapStructure(width, height);
+
+  // 3. 绘制烟雾弹遮挡
+  radarEntities.smokes.forEach(s => {
+    radarCtx.beginPath();
+    radarCtx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+    radarCtx.fillStyle = `rgba(148, 163, 184, ${s.opacity})`;
+    radarCtx.fill();
+    s.radius = Math.min(45, s.radius + 0.1);
+  });
+
+  // 4. 绘制 C4 炸弹脉冲动画
+  if (radarEntities.c4.active) {
+    const pulse = (Date.now() % 1000) / 1000;
+    radarCtx.beginPath();
+    radarCtx.arc(radarEntities.c4.x, radarEntities.c4.y, 10 + pulse * 20, 0, Math.PI * 2);
+    radarCtx.strokeStyle = `rgba(244, 63, 94, ${1 - pulse})`;
+    radarCtx.lineWidth = 3;
+    radarCtx.stroke();
+
+    radarCtx.beginPath();
+    radarCtx.arc(radarEntities.c4.x, radarEntities.c4.y, 6, 0, Math.PI * 2);
+    radarCtx.fillStyle = '#f43f5e';
+    radarCtx.fill();
+  }
+
+  // 5. 绘制弹道 Gunfire Tracers
+  radarEntities.tracers.forEach(t => {
+    radarCtx.beginPath();
+    radarCtx.moveTo(t.x1, t.y1);
+    radarCtx.lineTo(t.x2, t.y2);
+    radarCtx.strokeStyle = `rgba(245, 158, 11, ${t.opacity})`;
+    radarCtx.lineWidth = 2;
+    radarCtx.stroke();
+    t.opacity -= 0.05;
+  });
+  radarEntities.tracers = radarEntities.tracers.filter(t => t.opacity > 0);
+
+  // 6. 更新与绘制 CT (蓝色) & T (橙色) 选手圆点
+  const allPlayers = [...radarEntities.cts, ...radarEntities.ts];
+
+  allPlayers.forEach(p => {
+    // 平滑插值走向目标点
+    p.x += (p.targetX - p.x) * 0.08;
+    p.y += (p.targetY - p.y) * 0.08;
+
+    if (!p.isAlive) {
+      // 阵亡标 X 💀
+      radarCtx.fillStyle = 'rgba(100, 116, 139, 0.6)';
+      radarCtx.font = 'bold 12px monospace';
+      radarCtx.fillText('✖', p.x - 4, p.y + 4);
+      return;
+    }
+
+    // 选手圆点光圈
+    radarCtx.beginPath();
+    radarCtx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+    radarCtx.fillStyle = p.team === 'CT' ? '#38bdf8' : '#f97316';
+    radarCtx.shadowColor = p.team === 'CT' ? '#38bdf8' : '#f97316';
+    radarCtx.shadowBlur = 10;
+    radarCtx.fill();
+    radarCtx.shadowBlur = 0; // 重置光芒
+
+    // 圆点外圈白色边框
+    radarCtx.lineWidth = 2;
+    radarCtx.strokeStyle = '#ffffff';
+    radarCtx.stroke();
+
+    // 名字 Label
+    radarCtx.fillStyle = p.team === 'CT' ? '#7dd3fc' : '#ffedd5';
+    radarCtx.font = 'bold 10px monospace';
+    radarCtx.textAlign = 'center';
+    radarCtx.fillText(p.name, p.x, p.y - 12);
+  });
+}
+
+// 绘制平面战术地图结构 (A区, B区, 中路, 路线)
+function drawMapStructure(width, height) {
+  const m = gameState.currentMatch;
+  const mapName = m ? m.maps[m.currentMapIndex] : 'DE_INFERNO';
+
+  radarCtx.lineWidth = 3;
+  radarCtx.strokeStyle = '#334155';
+
+  // 绘制通道路线 Line Paths
+  radarCtx.beginPath();
+  // T Spawn to Mid & Sites
+  radarCtx.moveTo(RADAR_ZONES.tSpawn.x, RADAR_ZONES.tSpawn.y);
+  radarCtx.lineTo(RADAR_ZONES.mid.x, RADAR_ZONES.mid.y);
+  radarCtx.lineTo(RADAR_ZONES.ctSpawn.x, RADAR_ZONES.ctSpawn.y);
+
+  radarCtx.moveTo(RADAR_ZONES.tSpawn.x, RADAR_ZONES.tSpawn.y);
+  radarCtx.lineTo(RADAR_ZONES.aLong.x, RADAR_ZONES.aLong.y);
+  radarCtx.lineTo(RADAR_ZONES.siteA.x, RADAR_ZONES.siteA.y);
+  radarCtx.lineTo(RADAR_ZONES.ctSpawn.x, RADAR_ZONES.ctSpawn.y);
+
+  radarCtx.moveTo(RADAR_ZONES.tSpawn.x, RADAR_ZONES.tSpawn.y);
+  radarCtx.lineTo(RADAR_ZONES.bApps.x, RADAR_ZONES.bApps.y);
+  radarCtx.lineTo(RADAR_ZONES.siteB.x, RADAR_ZONES.siteB.y);
+  radarCtx.lineTo(RADAR_ZONES.ctSpawn.x, RADAR_ZONES.ctSpawn.y);
+
+  radarCtx.stroke();
+
+  // A 包点 Zone
+  drawZoneBox(RADAR_ZONES.siteA.x, RADAR_ZONES.siteA.y, 90, 60, 'A SITE', '#f59e0b');
+
+  // B 包点 Zone
+  drawZoneBox(RADAR_ZONES.siteB.x, RADAR_ZONES.siteB.y, 90, 60, 'B SITE', '#f59e0b');
+
+  // CT & T 出生点 Base Boxes
+  drawZoneBox(RADAR_ZONES.ctSpawn.x, RADAR_ZONES.ctSpawn.y, 70, 70, 'CT BASE', '#38bdf8');
+  drawZoneBox(RADAR_ZONES.tSpawn.x, RADAR_ZONES.tSpawn.y, 70, 70, 'T BASE', '#f97316');
+
+  // 顶端地图标
+  radarCtx.fillStyle = '#94a3b8';
+  radarCtx.font = 'bold 12px monospace';
+  radarCtx.textAlign = 'left';
+  radarCtx.fillText(`MAP: ${mapName} // 2D RADAR OBSERVER`, 15, 25);
+}
+
+function drawZoneBox(cx, cy, w, h, label, color) {
+  const x = cx - w / 2;
+  const y = cy - h / 2;
+  radarCtx.fillStyle = `${color}15`; // 15% 透明度
+  radarCtx.strokeStyle = `${color}60`;
+  radarCtx.lineWidth = 1.5;
+
+  radarCtx.fillRect(x, y, w, h);
+  radarCtx.strokeRect(x, y, w, h);
+
+  radarCtx.fillStyle = color;
+  radarCtx.font = 'bold 10px monospace';
+  radarCtx.textAlign = 'center';
+  radarCtx.fillText(label, cx, cy + 4);
+}
+
+// 挂钩到模拟回合函数 simulateRound
+const originalSimulateRound = simulateRound;
+simulateRound = function() {
+  const m = gameState.currentMatch;
+  const myWonBefore = m ? m.scoreMy : 0;
+  originalSimulateRound();
+  
+  if (gameState.currentMatch) {
+    const myWon = gameState.currentMatch.scoreMy > myWonBefore;
+    triggerRadarBattle(myWon);
+  }
+};
+
+// 挂钩到匹配新对手时重置雷达
+const originalInitNewMatch = initNewMatch;
+initNewMatch = function(oppName, format) {
+  originalInitNewMatch(oppName, format);
+  resetRadarPositions();
+};
+
+// 页面加载完成后初始化 Canvas
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(initRadarCanvas, 200);
+});
