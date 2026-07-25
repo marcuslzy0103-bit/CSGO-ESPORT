@@ -39,3 +39,32 @@ html {
 .kill-item-clutch {
   border-left: 3px solid #f59e0b;
 }
+
+/* Map info bar */
+#map-info-bar {
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #1e293b;
+}
+
+/* Kill feed auto-scroll smooth */
+#kill-feed-box::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.5);
+}
+
+/* Bench styling */
+.bench-player {
+  transition: all 0.2s ease;
+}
+.bench-player:hover {
+  transform: translateX(4px);
+}
+
+/* Mobile responsive kill feed */
+@media (max-width: 640px) {
+  #kill-feed-box {
+    max-height: 200px;
+    overflow-x: hidden;
+  }
+}
