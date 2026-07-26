@@ -6,15 +6,28 @@
 const STORAGE_KEY = 'badminton_life_save_v1';
 
 /* ==========================================================================
-   STAT DEFINITIONS — 6 大自由属性加点定义
+   STAT DEFINITIONS — 12 维羽毛球专业细分属性矩阵
    ========================================================================== */
 const STAT_DEFS = {
-  smash:      { name: '💥 杀球爆发力 (Smash Power)', desc: '提升重杀得分率与杀球最高时速 (最高 450+ km/h！)', color: 'text-amber-400', icon: '💥' },
-  footwork:   { name: '⚡ 步法身法 (Footwork Speed)', desc: '提升全场防守覆盖跑位速度与救球成功率', color: 'text-emerald-400', icon: '⚡' },
-  netTouch:   { name: '🎾 网前手感 (Net Touch)',     desc: '提升搓球、贴网放网、勾对角的得分率与网前压制力', color: 'text-cyan-400', icon: '🎾' },
-  stamina:    { name: '🫁 体能储备 (Stamina)',      desc: '降低第三局决胜局与 Deuce 拉锯战的体能衰减速度', color: 'text-purple-400', icon: '🫁' },
-  deception:  { name: '🎭 假动作与心态 (Deception)', desc: '提升停顿推球骗重心成功率与关键分抗压能力', color: 'text-pink-400', icon: '🎭' },
-  injuryRes:  { name: '🛡️ 抗伤病率 (Injury Res)',    desc: '降低高强度密集赛程下的膝盖/肩袖拉伤概率', color: 'text-blue-400', icon: '🛡️' }
+  // 💥 杀球与平抽群组
+  smashPower:      { name: '💥 双跳重杀爆发力', desc: '决定起跳重杀瞬间爆发力与砸地板杀球最高时速 (最高 450+ km/h)', color: 'text-amber-400', icon: '💥' },
+  sliceAngle:      { name: '🔪 滑板与劈杀角度', desc: '决定滑板劈杀斜线角度与切球贴网落地陡峭度', color: 'text-amber-400', icon: '🔪' },
+  driveSpeed:      { name: '⚡ 中场平抽快挡',   desc: '决定中后场 200km/h 极速平抽快挡时的反击连贯率', color: 'text-amber-400', icon: '⚡' },
+
+  // ⚡ 身法与防守群组
+  footworkCoverage:{ name: '👟 米字步全场覆盖', desc: '决定步法连贯性与前后场四角救球覆盖面积', color: 'text-emerald-400', icon: '👟' },
+  recoverySpeed:   { name: '🔄 击球回中启动步', desc: '决定完成杀球/救球后快速收腿回中路防守的速度', color: 'text-emerald-400', icon: '🔄' },
+  defenseWall:     { name: '🛡️ 接杀化解起高球', desc: '决定被对手重杀时将球挑深化解进攻或反顶死角的能力', color: 'text-emerald-400', icon: '🛡️' },
+
+  // 🎾 网前与控球群组
+  spinNet:         { name: '🌀 贴网滚网搓球', desc: '决定网前放网细腻度，制造擦网过下坠的死角球', color: 'text-cyan-400', icon: '🌀' },
+  crossCourtWipe:  { name: '📐 网前快速勾对角', desc: '决定在网前急速改变球路甩勾对角底线的准确度', color: 'text-cyan-400', icon: '📐' },
+  killIntercept:   { name: '🏸 网前高点扑球', desc: '决定网前抓对方半高球瞬间高点举拍扑杀速度', color: 'text-cyan-400', icon: '🏸' },
+
+  // 🫁 体能与心智群组
+  staminaPool:     { name: '🫁 决胜局体能储备', desc: '决定打满 3 局 60 分钟高强度拉锯战时后半程体能下滑速度', color: 'text-purple-400', icon: '🫁' },
+  clutchMindset:   { name: '🫀 Deuce 关键分心智', desc: '决定在 20:20 Deuce 关键分时的稳定度与减少非受迫失误', color: 'text-purple-400', icon: '🫀' },
+  deceptionHold:   { name: '🎭 假动作停顿掩护', desc: '决定挥拍做动作时停顿 0.5 秒晃骗对手重心的成功率', color: 'text-purple-400', icon: '🎭' }
 };
 
 /* ==========================================================================
@@ -27,9 +40,9 @@ const SKILL_TREES = [
     desc: '追求极限扣杀时速与绝对压制力的进攻流派。',
     color: 'text-amber-400',
     skills: [
-      { id: 's1', name: '⚡ 跳杀压线 (Jump Smash Direct)', reqStat: 'smash', reqVal: 25, desc: '杀球最高时速 +25km/h，杀球得分率 +15%', icon: '⚡' },
-      { id: 's2', name: '🔪 劈杀斜线 (Cross Slicing)', reqStat: 'smash', reqVal: 45, desc: '陡峭角度劈杀，对手接球出界失误率 +20%', icon: '🔪' },
-      { id: 's3', name: '🔥 450km/h 极速重扣 (God of Smash)', reqStat: 'smash', reqVal: 65, desc: '【终极奥义】触发金色闪电全屏特效，杀球胜率 +30%', icon: '🔥', isUltimate: true }
+      { id: 's1', name: '⚡ 跳杀压线 (Jump Smash Direct)', reqStat: 'smashPower', reqVal: 35, desc: '杀球最高时速 +25km/h，杀球得分率 +15%', icon: '⚡' },
+      { id: 's2', name: '🔪 劈杀斜线 (Cross Slicing)', reqStat: 'sliceAngle', reqVal: 55, desc: '陡峭角度劈杀，对手接球出界失误率 +20%', icon: '🔪' },
+      { id: 's3', name: '🔥 450km/h 极速重扣 (God of Smash)', reqStat: 'smashPower', reqVal: 75, desc: '【终极奥义】触发金色闪电全屏特效，杀球胜率 +30%', icon: '🔥', isUltimate: true }
     ]
   },
   {
@@ -38,9 +51,9 @@ const SKILL_TREES = [
     desc: '依靠严密防守与跑位消耗对手体能的钢铁防线。',
     color: 'text-emerald-400',
     skills: [
-      { id: 'd1', name: '🐟 鱼跃扑救 (Diving Save)', reqStat: 'footwork', reqVal: 25, desc: '被动救起死角球概率 +25%', icon: '🐟' },
-      { id: 'd2', name: '🏸 反手底线抽击 (Backhand Deep Clear)', reqStat: 'footwork', reqVal: 45, desc: '底线被动化解，反手甩出深高远球', icon: '🏸' },
-      { id: 'd3', name: '🏰 叹息之墙 (Iron Wall Defense)', reqStat: 'stamina', reqVal: 65, desc: '【终极奥义】对手杀球体力消耗 +50%，防守反击胜率 +25%', icon: '🏰', isUltimate: true }
+      { id: 'd1', name: '🐟 鱼跃扑救 (Diving Save)', reqStat: 'footworkCoverage', reqVal: 35, desc: '被动救起死角球概率 +25%', icon: '🐟' },
+      { id: 'd2', name: '🏸 反手底线抽击 (Backhand Deep Clear)', reqStat: 'recoverySpeed', reqVal: 55, desc: '底线被动化解，反手甩出深高远球', icon: '🏸' },
+      { id: 'd3', name: '🏰 叹息之墙 (Iron Wall Defense)', reqStat: 'defenseWall', reqVal: 75, desc: '【终极奥义】对手杀球体力消耗 +50%，防守反击胜率 +25%', icon: '🏰', isUltimate: true }
     ]
   },
   {
@@ -49,9 +62,9 @@ const SKILL_TREES = [
     desc: '在贴网处展现出神入化的手感，制造滚网与死角。',
     color: 'text-cyan-400',
     skills: [
-      { id: 'n1', name: '🌀 贴网滚网搓球 (Spinning Hair-pin)', reqStat: 'netTouch', reqVal: 25, desc: '羽毛球贴网急坠，逼对方搓球挂网失误', icon: '🌀' },
-      { id: 'n2', name: '📐 勾对角死角 (Cross-net Wipe)', reqStat: 'netTouch', reqVal: 45, desc: '网前快速改变球路推对角死角', icon: '📐' },
-      { id: 'n3', name: '👻 网前死神控球 (Ghost Touch)', reqStat: 'netTouch', reqVal: 65, desc: '【终极奥义】网前小球胜率 +30%，对手下网率 +25%', icon: '👻', isUltimate: true }
+      { id: 'n1', name: '🌀 贴网滚网搓球 (Spinning Hair-pin)', reqStat: 'spinNet', reqVal: 35, desc: '羽毛球贴网急坠，逼对方搓球挂网失误', icon: '🌀' },
+      { id: 'n2', name: '📐 勾对角死角 (Cross-net Wipe)', reqStat: 'crossCourtWipe', reqVal: 55, desc: '网前快速改变球路推对角死角', icon: '📐' },
+      { id: 'n3', name: '👻 网前死神控球 (Ghost Touch)', reqStat: 'killIntercept', reqVal: 75, desc: '【终极奥义】网前小球胜率 +30%，对手下网率 +25%', icon: '👻', isUltimate: true }
     ]
   },
   {
@@ -60,9 +73,9 @@ const SKILL_TREES = [
     desc: '通过停顿与假动作骗取对手重心，掌控心理主动。',
     color: 'text-purple-400',
     skills: [
-      { id: 'm1', name: '⏱️ 动作停顿推后场 (Hold and Flick)', reqStat: 'deception', reqVal: 25, desc: '动作停顿 0.5 秒晃骗对手重心后甩深球', icon: '⏱️' },
-      { id: 'm2', name: '🎭 假杀真吊 (Deceptive Drop Shot)', reqStat: 'deception', reqVal: 45, desc: '做全力重杀挥拍动作实际网前轻吊', icon: '🎭' },
-      { id: 'm3', name: '🫀 心脏骤停 Match Point (CLUTCH GOD)', reqStat: 'deception', reqVal: 65, desc: '【终极奥义】在 Deuce 与局点关键分抗压胜率 +35%', icon: '🫀', isUltimate: true }
+      { id: 'm1', name: '⏱️ 动作停顿推后场 (Hold and Flick)', reqStat: 'deceptionHold', reqVal: 35, desc: '动作停顿 0.5 秒晃骗对手重心后甩深球', icon: '⏱️' },
+      { id: 'm2', name: '🎭 假杀真吊 (Deceptive Drop Shot)', reqStat: 'deceptionHold', reqVal: 55, desc: '做全力重杀挥拍动作实际网前轻吊', icon: '🎭' },
+      { id: 'm3', name: '🫀 心脏骤停 Match Point (CLUTCH GOD)', reqStat: 'clutchMindset', reqVal: 75, desc: '【终极奥义】在 Deuce 与局点关键分抗压胜率 +35%', icon: '🫀', isUltimate: true }
     ]
   }
 ];
@@ -77,25 +90,22 @@ const defaultGameState = {
     ageYears: 16,
     ageWeeks: 24,
     height: 178, // cm
-    stage: 'JUNIOR', // 'CHILDHOOD' (0-6), 'PRIMARY' (7-12), 'JUNIOR' (13-17), 'PRO' (18-32), 'VETERAN' (33+)
+    stage: 'JUNIOR',
     funds: 2500,
     rank: 142,
-    statPoints: 8,
+    statPoints: 0,
+    trainingPlan: { primary: 'smashPower', secondary: 'footworkCoverage' },
     stats: {
-      smash: 78,
-      footwork: 74,
-      netTouch: 76,
-      stamina: 80,
-      deception: 72,
-      injuryRes: 85
+      smashPower: 58, sliceAngle: 52, driveSpeed: 50,
+      footworkCoverage: 55, recoverySpeed: 52, defenseWall: 48,
+      spinNet: 54, crossCourtWipe: 50, killIntercept: 46,
+      staminaPool: 60, clutchMindset: 55, deceptionHold: 48
     },
     racket: 'Yonex Astrox 88D',
-    racketBoosts: { smash: 5, netTouch: 3 },
-    wins: 28,
-    losses: 6,
-    titles: 3,
+    racketBoosts: { smashPower: 5, spinNet: 3 },
+    wins: 28, losses: 6, titles: 3,
     eventLog: [
-      '🎉 16 岁入选马来西亚国家青年队，获赠 Yonex Astrox 88D 球拍！',
+      '🎉 16 岁入选马来西亚国家青年队，开启 12 维专业羽毛球特训方案！',
       '🏆 赢得市级青少年羽毛球公开赛男单冠军，积累 $800 奖金！',
       '👶 0 岁出生，遗传身高门槛 178 cm，手眼协调天赋判定出色！'
     ],
@@ -239,11 +249,17 @@ function initEvents() {
       stage: 'CHILDHOOD',
       funds: 500,
       rank: 999,
-      statPoints: 5,
-      stats: { smash: 10, footwork: 10, netTouch: 10, stamina: 15, deception: 10, injuryRes: 80 },
+      statPoints: 0,
+      trainingPlan: { primary: 'smashPower', secondary: 'footworkCoverage' },
+      stats: {
+        smashPower: 10, sliceAngle: 10, driveSpeed: 10,
+        footworkCoverage: 10, recoverySpeed: 10, defenseWall: 10,
+        spinNet: 10, crossCourtWipe: 10, killIntercept: 10,
+        staminaPool: 15, clutchMindset: 10, deceptionHold: 10
+      },
       racket: '儿童塑料玩具拍', racketBoosts: {},
       wins: 0, losses: 0, titles: 0,
-      eventLog: [`👶 0 岁呱呱坠地于 ${country}！遗传预估身高 ${height} cm，开启纯白羽毛球人生！获得 5 初始 TP 点。`],
+      eventLog: [`👶 0 岁呱呱坠地于 ${country}！遗传预估身高 ${height} cm，开启 12 维专业羽毛球细分成长之路！`],
       trophies: []
     };
 
@@ -367,16 +383,16 @@ window.setTrainingFocus = function(statKey, role) {
 
 window.setTrainingPreset = function(presetType) {
   const p = gameState.player;
-  if (!p.trainingPlan) p.trainingPlan = { primary: 'smash', secondary: 'footwork' };
+  if (!p.trainingPlan) p.trainingPlan = { primary: 'smashPower', secondary: 'footworkCoverage' };
 
   if (presetType === 'SMASH') {
-    p.trainingPlan.primary = 'smash'; p.trainingPlan.secondary = 'footwork';
+    p.trainingPlan.primary = 'smashPower'; p.trainingPlan.secondary = 'footworkCoverage';
   } else if (presetType === 'DEFENSE') {
-    p.trainingPlan.primary = 'footwork'; p.trainingPlan.secondary = 'stamina';
+    p.trainingPlan.primary = 'footworkCoverage'; p.trainingPlan.secondary = 'staminaPool';
   } else if (presetType === 'NET') {
-    p.trainingPlan.primary = 'netTouch'; p.trainingPlan.secondary = 'deception';
+    p.trainingPlan.primary = 'spinNet'; p.trainingPlan.secondary = 'crossCourtWipe';
   } else if (presetType === 'STAMINA') {
-    p.trainingPlan.primary = 'stamina'; p.trainingPlan.secondary = 'injuryRes';
+    p.trainingPlan.primary = 'staminaPool'; p.trainingPlan.secondary = 'clutchMindset';
   }
 
   saveGame(); renderAll();
@@ -392,17 +408,19 @@ function skipToAge18() {
   p.ageWeeks = 0;
   p.stage = 'PRO';
 
-  // 青少年身体自然基础成长 (平均提升至 40 点)
-  const cap = getAgeStatCap(18);
-  Object.keys(p.stats).forEach(k => {
-    if (p.stats[k] < 40) p.stats[k] = 40;
+  // 青少年身体自然基础成长 (平均提升至 35~45 点)
+  const baseStats = {
+    smashPower: 45, sliceAngle: 40, driveSpeed: 38,
+    footworkCoverage: 42, recoverySpeed: 40, defenseWall: 36,
+    spinNet: 40, crossCourtWipe: 38, killIntercept: 35,
+    staminaPool: 48, clutchMindset: 40, deceptionHold: 36
+  };
+  Object.keys(baseStats).forEach(k => {
+    if ((p.stats[k] || 0) < baseStats[k]) p.stats[k] = baseStats[k];
   });
 
-  // 给予合理平衡的 25 点自由属性加点 (而不是 880+ 破表点数)
-  p.statPoints = 25;
-
-  p.eventLog.unshift(`⚡ 开启【直达 18 岁成年期】！身体自然成长至 40 OVR 基础，获得 25 自由加点 TP，正式进军 BWF 职业巡回赛！`);
-  showToast(`⚡ 直达 18 岁成年期！获得 25 点自由属性加点 (TP)！`);
+  p.eventLog.unshift(`⚡ 开启【直达 18 岁成年期】！身体自然成长至 40 OVR 青少年国手基准，正式进军成年 BWF 职业巡回赛！`);
+  showToast(`⚡ 直达 18 岁成年期！已进入成年 BWF 职业赛战场！`);
   saveGame(); renderAll();
 }
 
