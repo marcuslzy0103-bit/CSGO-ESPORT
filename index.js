@@ -461,7 +461,15 @@ function initBadmintonCanvas() {
   }
 }
 
-function triggerShuttleShot(fromSide, shotType) {
+let rallyEngine = {
+  inRally: false,
+  shotIndex: 0,
+  rallySequence: [],
+  winnerSide: 'MY',
+  finalShotType: 'SMASH'
+};
+
+function triggerShuttleShot(fromSide, shotType, targetLoc) {
   const s = courtEntities.shuttle;
   const myP = courtEntities.myPlayer;
   const oppP = courtEntities.oppPlayer;
@@ -476,21 +484,21 @@ function triggerShuttleShot(fromSide, shotType) {
   const farMinY = 60, farMaxY = 210;
 
   if (fromSide === 'MY') { // 我方击球，打往远场对手半场
-    myP.targetX = Math.max(minX, Math.min(maxX, s.x + (Math.random() * 60 - 30)));
-    myP.targetY = Math.max(nearMinY, Math.min(nearMaxY, s.y + (Math.random() * 40 - 20)));
+    myP.targetX = Math.max(minX, Math.min(maxX, s.x));
+    myP.targetY = Math.max(nearMinY, Math.min(nearMaxY, s.y));
     myP.swingAnim = 1;
 
-    s.targetX = Math.floor(Math.random() * (maxX - minX)) + minX;
-    s.targetY = Math.floor(Math.random() * (farMaxY - farMinY)) + farMinY;
+    s.targetX = targetLoc ? targetLoc.x : Math.floor(Math.random() * (maxX - minX)) + minX;
+    s.targetY = targetLoc ? targetLoc.y : Math.floor(Math.random() * (farMaxY - farMinY)) + farMinY;
     oppP.targetX = s.targetX;
     oppP.targetY = s.targetY;
   } else { // 对手击球，打往近场我方半场
-    oppP.targetX = Math.max(minX, Math.min(maxX, s.x + (Math.random() * 60 - 30)));
-    oppP.targetY = Math.max(farMinY, Math.min(farMaxY, s.y + (Math.random() * 40 - 20)));
+    oppP.targetX = Math.max(minX, Math.min(maxX, s.x));
+    oppP.targetY = Math.max(farMinY, Math.min(farMaxY, s.y));
     oppP.swingAnim = 1;
 
-    s.targetX = Math.floor(Math.random() * (maxX - minX)) + minX;
-    s.targetY = Math.floor(Math.random() * (nearMaxY - nearMinY)) + nearMinY;
+    s.targetX = targetLoc ? targetLoc.x : Math.floor(Math.random() * (maxX - minX)) + minX;
+    s.targetY = targetLoc ? targetLoc.y : Math.floor(Math.random() * (nearMaxY - nearMinY)) + nearMinY;
     myP.targetX = s.targetX;
     myP.targetY = s.targetY;
   }
@@ -498,22 +506,27 @@ function triggerShuttleShot(fromSide, shotType) {
   // 抛物线与速度参数设置
   if (shotType === 'SMASH') {
     s.isSmash = true;
-    s.speed = 0.07;
-    s.arcHeight = 25; // 陡峭急速直线压低
+    s.speed = 0.08;
+    s.arcHeight = 22; // 陡峭急速下击
     courtEntities.lastShotName = `💥 418 km/h 陡峭重杀!`;
   } else if (shotType === 'CLEAR') {
     s.isSmash = false;
-    s.speed = 0.03;
-    s.arcHeight = 110; // 深弧线高远球
+    s.speed = 0.035;
+    s.arcHeight = 115; // 深弧线高远球
     courtEntities.lastShotName = `🏸 底线高远球压深`;
   } else if (shotType === 'DROP') {
     s.isSmash = false;
-    s.speed = 0.04;
-    s.arcHeight = 45; // 过网贴网急坠
+    s.speed = 0.045;
+    s.arcHeight = 40; // 网前搓球急坠
     courtEntities.lastShotName = `🎾 网前精妙搓球`;
+  } else if (shotType === 'SERVE') {
+    s.isSmash = false;
+    s.speed = 0.04;
+    s.arcHeight = 60; // 比赛发球
+    courtEntities.lastShotName = `🏸 比赛发球`;
   } else {
     s.isSmash = false;
-    s.speed = 0.05;
+    s.speed = 0.055;
     s.arcHeight = 35; // 平抽快挡
     courtEntities.lastShotName = `⚡ 中场平抽快挡`;
   }
@@ -522,6 +535,7 @@ function triggerShuttleShot(fromSide, shotType) {
 function simulateBadmintonPoint() {
   const m = gameState.currentMatch;
   if (!m || m.isFinished) { stopAutoMatch(); showToast('本场比赛已结束！'); return; }
+  if (rallyEngine.inRally) return; // 正在回合中，防止重复触发
 
   const p = gameState.player;
   const myOvr = Math.round((p.stats.smash + p.stats.footwork + p.stats.netTouch + p.stats.stamina) / 4);
@@ -529,13 +543,74 @@ function simulateBadmintonPoint() {
   const winProb = Math.max(0.15, Math.min(0.85, (myOvr + (p.racketBoosts.smash || 0)) / (myOvr + m.oppOvr)));
   const myWonPoint = Math.random() < winProb;
 
-  const shotTypes = ['SMASH', 'CLEAR', 'DROP', 'DRIVE'];
-  const shot = shotTypes[Math.floor(Math.random() * shotTypes.length)];
+  // 生成 3 到 7 拍实时多拍回合序列 (Rally sequence)
+  const rallyLength = Math.floor(Math.random() * 4) * 2 + 3; // 3, 5, 7 拍
+  const shotPool = ['CLEAR', 'DROP', 'DRIVE', 'CLEAR'];
+  const sequence = [];
 
-  // 触发 2D 画布真实羽毛球飞行与跑位轨迹！
-  triggerShuttleShot(myWonPoint ? 'MY' : 'OPP', shot);
+  let currentSide = myWonPoint ? (rallyLength % 2 === 1 ? 'MY' : 'OPP') : (rallyLength % 2 === 1 ? 'OPP' : 'MY');
 
-  if (shot === 'SMASH' && myWonPoint) {
+  sequence.push({ side: currentSide, shot: 'SERVE' });
+  currentSide = currentSide === 'MY' ? 'OPP' : 'MY';
+
+  for (let i = 1; i < rallyLength - 1; i++) {
+    const shot = shotPool[Math.floor(Math.random() * shotPool.length)];
+    sequence.push({ side: currentSide, shot });
+    currentSide = currentSide === 'MY' ? 'OPP' : 'MY';
+  }
+
+  const finalShot = Math.random() < 0.6 ? 'SMASH' : 'DROP';
+  sequence.push({ side: currentSide, shot: finalShot, isFinal: true });
+
+  rallyEngine = {
+    inRally: true,
+    shotIndex: 0,
+    rallySequence: sequence,
+    winnerSide: myWonPoint ? 'MY' : 'OPP',
+    finalShotType: finalShot
+  };
+
+  playNextRallyShot();
+}
+
+function playNextRallyShot() {
+  if (!rallyEngine.inRally) return;
+
+  const seq = rallyEngine.rallySequence;
+  const idx = rallyEngine.shotIndex;
+
+  if (idx < seq.length) {
+    const cur = seq[idx];
+    triggerShuttleShot(cur.side, cur.shot);
+  }
+}
+
+function onShuttleReachedTarget() {
+  if (!rallyEngine.inRally) return;
+
+  const seq = rallyEngine.rallySequence;
+  const idx = rallyEngine.shotIndex;
+
+  if (idx < seq.length - 1) {
+    // 还在多拍回合拉锯中，推进到下一拍！
+    rallyEngine.shotIndex++;
+    setTimeout(playNextRallyShot, 120);
+  } else {
+    // 最后一拍：羽毛球落地杀球/出界，真正结算 +1 分！
+    finishRallyPoint();
+  }
+}
+
+function finishRallyPoint() {
+  rallyEngine.inRally = false;
+  const m = gameState.currentMatch;
+  if (!m || m.isFinished) return;
+
+  const p = gameState.player;
+  const myWonPoint = rallyEngine.winnerSide === 'MY';
+  const finalShot = rallyEngine.finalShotType;
+
+  if (finalShot === 'SMASH' && myWonPoint) {
     const speed = Math.floor(Math.random() * 40) + 380;
     courtEntities.smashSpeed = speed;
     const banner = document.getElementById('smash-speed-banner');
@@ -557,9 +632,10 @@ function simulateBadmintonPoint() {
     }
   }
 
+  // 真正加分！
   if (myWonPoint) {
     m.myScore++;
-    m.killLog.unshift(`💥 [得分] ${p.name} 凭借精准 ${shot === 'SMASH' ? '双跳重杀' : '网前搓球'} 得分！`);
+    m.killLog.unshift(`💥 [得分] ${p.name} 经过 ${seqLength()} 拍精彩拉锯，凭借 ${finalShot === 'SMASH' ? '双跳重杀' : '网前搓球'} 得分！`);
   } else {
     m.oppScore++;
     m.killLog.unshift(`⚠️ 对手 ${m.oppName} 底线突击直线杀球得分。`);
@@ -580,6 +656,17 @@ function simulateBadmintonPoint() {
   }
 
   renderMatchUI();
+
+  // 如果处于自动模拟状态，在 1.4 秒后自动发起下一回合！
+  if (autoMatchInterval && !m.isFinished) {
+    setTimeout(() => {
+      if (autoMatchInterval && !m.isFinished) simulateBadmintonPoint();
+    }, 1400);
+  }
+}
+
+function seqLength() {
+  return rallyEngine.rallySequence ? rallyEngine.rallySequence.length : 5;
 }
 
 function autoPlayMatch() {
@@ -587,14 +674,12 @@ function autoPlayMatch() {
   if (autoMatchInterval) { stopAutoMatch(); return; }
   const btn = document.getElementById('btn-sim-match-auto');
   if (btn) btn.textContent = '⏸ 暂停自动模拟';
-  autoMatchInterval = setInterval(() => {
-    if (gameState.currentMatch.isFinished) stopAutoMatch();
-    else simulateBadmintonPoint();
-  }, 220);
+  autoMatchInterval = true;
+  simulateBadmintonPoint();
 }
 
 function stopAutoMatch() {
-  if (autoMatchInterval) { clearInterval(autoMatchInterval); autoMatchInterval = null; }
+  autoMatchInterval = false;
   const btn = document.getElementById('btn-sim-match-auto');
   if (btn) btn.textContent = '⚡ 自动模拟整场比赛 (AUTO MATCH)';
 }
@@ -653,6 +738,7 @@ function updateCourtPhysics() {
 
   // 2. 羽毛球抛物线飞行插值
   if (s.progress < 1) {
+    const prevProgress = s.progress;
     s.progress = Math.min(1, s.progress + s.speed);
 
     s.x = s.startX + (s.targetX - s.startX) * s.progress;
@@ -662,6 +748,11 @@ function updateCourtPhysics() {
     // 记录拖尾物理轨迹
     s.trail.push({ x: s.x, y: s.y, z: s.z });
     if (s.trail.length > 10) s.trail.shift();
+
+    // 刚到达目标落点，触发多拍逻辑或落地加分！
+    if (s.progress >= 1 && prevProgress < 1) {
+      onShuttleReachedTarget();
+    }
   }
 }
 
