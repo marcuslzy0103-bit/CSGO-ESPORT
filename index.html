@@ -121,6 +121,9 @@
         <button data-tab="stats" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
           <span>📋 每周训练规划</span>
         </button>
+        <button data-tab="skills" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
+          <span>✨ 流派绝技树</span>
+        </button>
         <button data-tab="tournaments" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
           <span>📅 自由赛事报名大厅</span>
         </button>
@@ -298,6 +301,28 @@
       <!-- 6 大核心训练项目面板 -->
       <div id="stat-allocation-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- 动态渲染 6 大训练科目配置卡片 -->
+      </div>
+
+    <!-- ==========================================================================
+         TAB 2.5: ✨ 羽毛球流派与绝技树 (SKILL TREES)
+         ========================================================================== -->
+    <div id="tab-skills" class="tab-content hidden space-y-8">
+      
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div>
+          <h2 class="text-2xl font-extrabold text-white">羽毛球流派与专属绝技树</h2>
+          <p class="text-slate-400 text-xs mt-1">通过积累对应流派的训练周数或属性要求，解锁 4 大羽毛球流派绝技与终极奥义，在 2D 比赛中震撼施展！</p>
+        </div>
+
+        <div class="flex items-center gap-3 font-mono text-xs">
+          <span class="text-slate-400">已解锁绝技:</span>
+          <span id="unlocked-skills-count" class="text-emerald-400 font-bold text-base">0 / 12</span>
+        </div>
+      </div>
+
+      <!-- 4 大流派绝技树 Grid -->
+      <div id="skill-trees-container" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- 动态渲染 4 大流派绝技卡片 -->
       </div>
 
     </div>

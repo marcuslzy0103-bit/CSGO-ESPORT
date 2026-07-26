@@ -18,6 +18,56 @@ const STAT_DEFS = {
 };
 
 /* ==========================================================================
+   SKILL TREES & SPECIAL MOVES — 4 大羽毛球流派绝技树定义
+   ========================================================================== */
+const SKILL_TREES = [
+  {
+    id: 'smash_school',
+    name: '💥 全攻重杀流派 (Aggressive Smash School)',
+    desc: '追求极限扣杀时速与绝对压制力的进攻流派。',
+    color: 'text-amber-400',
+    skills: [
+      { id: 's1', name: '⚡ 跳杀压线 (Jump Smash Direct)', reqStat: 'smash', reqVal: 25, desc: '杀球最高时速 +25km/h，杀球得分率 +15%', icon: '⚡' },
+      { id: 's2', name: '🔪 劈杀斜线 (Cross Slicing)', reqStat: 'smash', reqVal: 45, desc: '陡峭角度劈杀，对手接球出界失误率 +20%', icon: '🔪' },
+      { id: 's3', name: '🔥 450km/h 极速重扣 (God of Smash)', reqStat: 'smash', reqVal: 65, desc: '【终极奥义】触发金色闪电全屏特效，杀球胜率 +30%', icon: '🔥', isUltimate: true }
+    ]
+  },
+  {
+    id: 'defense_school',
+    name: '🛡️ 全场拉吊防守流派 (Iron Wall Defense)',
+    desc: '依靠严密防守与跑位消耗对手体能的钢铁防线。',
+    color: 'text-emerald-400',
+    skills: [
+      { id: 'd1', name: '🐟 鱼跃扑救 (Diving Save)', reqStat: 'footwork', reqVal: 25, desc: '被动救起死角球概率 +25%', icon: '🐟' },
+      { id: 'd2', name: '🏸 反手底线抽击 (Backhand Deep Clear)', reqStat: 'footwork', reqVal: 45, desc: '底线被动化解，反手甩出深高远球', icon: '🏸' },
+      { id: 'd3', name: '🏰 叹息之墙 (Iron Wall Defense)', reqStat: 'stamina', reqVal: 65, desc: '【终极奥义】对手杀球体力消耗 +50%，防守反击胜率 +25%', icon: '🏰', isUltimate: true }
+    ]
+  },
+  {
+    id: 'net_school',
+    name: '🎾 网前细腻控球流派 (Ghost Net Play)',
+    desc: '在贴网处展现出神入化的手感，制造滚网与死角。',
+    color: 'text-cyan-400',
+    skills: [
+      { id: 'n1', name: '🌀 贴网滚网搓球 (Spinning Hair-pin)', reqStat: 'netTouch', reqVal: 25, desc: '羽毛球贴网急坠，逼对方搓球挂网失误', icon: '🌀' },
+      { id: 'n2', name: '📐 勾对角死角 (Cross-net Wipe)', reqStat: 'netTouch', reqVal: 45, desc: '网前快速改变球路推对角死角', icon: '📐' },
+      { id: 'n3', name: '👻 网前死神控球 (Ghost Touch)', reqStat: 'netTouch', reqVal: 65, desc: '【终极奥义】网前小球胜率 +30%，对手下网率 +25%', icon: '👻', isUltimate: true }
+    ]
+  },
+  {
+    id: 'deception_school',
+    name: '🎭 假动作与心智流派 (Mind Game & Deception)',
+    desc: '通过停顿与假动作骗取对手重心，掌控心理主动。',
+    color: 'text-purple-400',
+    skills: [
+      { id: 'm1', name: '⏱️ 动作停顿推后场 (Hold and Flick)', reqStat: 'deception', reqVal: 25, desc: '动作停顿 0.5 秒晃骗对手重心后甩深球', icon: '⏱️' },
+      { id: 'm2', name: '🎭 假杀真吊 (Deceptive Drop Shot)', reqStat: 'deception', reqVal: 45, desc: '做全力重杀挥拍动作实际网前轻吊', icon: '🎭' },
+      { id: 'm3', name: '🫀 心脏骤停 Match Point (CLUTCH GOD)', reqStat: 'deception', reqVal: 65, desc: '【终极奥义】在 Deuce 与局点关键分抗压胜率 +35%', icon: '🫀', isUltimate: true }
+    ]
+  }
+];
+
+/* ==========================================================================
    DEFAULT GAME STATE — 从 0 岁出生默认游戏状态
    ========================================================================== */
 const defaultGameState = {
@@ -969,8 +1019,48 @@ window.buyRacket = function(racketIndex) {
    9. RENDER ENGINE — UI 渲染引擎
    ========================================================================== */
 function renderAll() {
-  renderHeader(); renderDashboard(); renderStats(); renderTournaments();
+  renderHeader(); renderDashboard(); renderStats(); renderSkills(); renderTournaments();
   renderMatchUI(); renderShop(); renderRankings();
+}
+
+function renderSkills() {
+  const p = gameState.player;
+  const container = el('skill-trees-container');
+  if (!container) return;
+
+  let totalUnlocked = 0;
+
+  container.innerHTML = SKILL_TREES.map(tree => {
+    const skillCards = tree.skills.map(skill => {
+      const currentVal = p.stats[skill.reqStat] || 0;
+      const isUnlocked = currentVal >= skill.reqVal;
+      if (isUnlocked) totalUnlocked++;
+
+      return `<div class="p-3.5 rounded-lg border ${isUnlocked ? (skill.isUltimate ? 'bg-amber-500/10 border-amber-500/60 shadow-amber-500/10' : 'bg-slate-900 border-emerald-500/40') : 'bg-slate-950/60 border-slate-800 opacity-60'} space-y-1.5 transition-all font-mono text-xs">
+        <div class="flex items-center justify-between">
+          <span class="font-bold ${isUnlocked ? (skill.isUltimate ? 'text-amber-400 font-black' : 'text-emerald-400') : 'text-slate-400'}">
+            ${skill.icon} ${skill.name}
+          </span>
+          <span class="${isUnlocked ? 'text-emerald-400 font-bold' : 'text-slate-500'} text-[10px]">
+            ${isUnlocked ? '✓ 已解锁' : `🔒 需${STAT_DEFS[skill.reqStat].name.split(' ')[1]} ${skill.reqVal}`}
+          </span>
+        </div>
+        <p class="text-slate-300 text-[11px]">${skill.desc}</p>
+      </div>`;
+    }).join('');
+
+    return `<div class="rounded-xl bg-bwf-card border border-slate-800 p-6 space-y-4 shadow-xl">
+      <div class="border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-base ${tree.color}">${tree.name}</h3>
+        <p class="text-slate-400 text-xs mt-1">${tree.desc}</p>
+      </div>
+      <div class="space-y-3">
+        ${skillCards}
+      </div>
+    </div>`;
+  }).join('');
+
+  setEl('unlocked-skills-count', `${totalUnlocked} / 12`);
 }
 
 function el(id) { return document.getElementById(id); }
