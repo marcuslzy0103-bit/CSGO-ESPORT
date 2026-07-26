@@ -235,14 +235,17 @@ function getStatCost(currentVal) {
 
 function advanceWeeks(count = 1, silent = false) {
   const p = gameState.player;
-  let tpGained = 0;
+  if (!p.trainingPlan) p.trainingPlan = { primary: 'smash', secondary: 'footwork' };
+
+  let grownStatsCount = 0;
+  const cap = getAgeStatCap(p.ageYears);
 
   for (let i = 0; i < count; i++) {
     p.ageWeeks++;
     if (p.ageWeeks >= 52) {
       p.ageYears++;
       p.ageWeeks = 0;
-      if (!silent) p.eventLog.unshift(`🎂 祝贺！年龄增长到了 ${p.ageYears} 岁！解锁更高的身体发育上限 (${getAgeStatCap(p.ageYears)} 点)！`);
+      if (!silent) p.eventLog.unshift(`🎂 祝贺！年龄增长到了 ${p.ageYears} 岁！身体发育上限提升至 (${getAgeStatCap(p.ageYears)} 点)！`);
     }
 
     // 判定年龄阶段
@@ -252,11 +255,26 @@ function advanceWeeks(count = 1, silent = false) {
     else if (p.ageYears < 33) p.stage = 'PRO';
     else p.stage = 'VETERAN';
 
-    // 每 4 周 (1 个月) 获得 1 TP 属性点，防止 TP 暴涨破表
-    if (p.ageWeeks % 4 === 0) {
-      if (p.statPoints < 50) { // 限制可用 TP 最大存量 50
-        p.statPoints++;
-        tpGained++;
+    // 自动训练成长逻辑：每周按设定的【主修】和【辅修】科目自动涨属性！
+    const currentCap = getAgeStatCap(p.ageYears);
+    const prim = p.trainingPlan.primary;
+    const sec = p.trainingPlan.secondary;
+
+    // 主修科目：提升更快
+    if (p.stats[prim] < currentCap) {
+      p.stats[prim]++;
+      grownStatsCount++;
+    } else {
+      p.funds += 50; // 已满则发放津贴
+    }
+
+    // 辅修科目：每 2 周提升 1 点
+    if (p.ageWeeks % 2 === 0) {
+      if (p.stats[sec] < currentCap) {
+        p.stats[sec]++;
+        grownStatsCount++;
+      } else {
+        p.funds += 30;
       }
     }
 
@@ -264,16 +282,56 @@ function advanceWeeks(count = 1, silent = false) {
   }
 
   if (!silent) {
+    const primDef = STAT_DEFS[p.trainingPlan.primary]?.name.split(' ')[1] || '训练';
+    const secDef = STAT_DEFS[p.trainingPlan.secondary]?.name.split(' ')[1] || '特训';
     if (count > 1) {
-      p.eventLog.unshift(`🚀 闭关修炼了 ${count} 周！获得了 +${tpGained} 可用属性点 (TP)！`);
-      showToast(`⚡ 快速推进了 ${count} 周！积累 +${tpGained} TP！`);
+      p.eventLog.unshift(`🚀 完成了 ${count} 周【${primDef}】与【${secDef}】特训方案！自动提升了 ${grownStatsCount} 属性点！`);
+      showToast(`⚡ 按训练计划快速推进 ${count} 周！属性自动成长 +${grownStatsCount}！`);
     } else {
-      if (tpGained > 0) showToast(`🏋️ 特训 1 周完成：获得了 +1 可用属性点 (TP)！`);
+      p.eventLog.unshift(`🏋️ 本周完成了【${primDef}】与【${secDef}】按计划训练完成！`);
     }
   }
 
   saveGame(); renderAll();
 }
+
+/* ==========================================================================
+   5. WEEKLY TRAINING PLANNER CONTROLLER — 每周训练规划控制器
+   ========================================================================== */
+window.setTrainingFocus = function(statKey, role) {
+  const p = gameState.player;
+  if (!p.trainingPlan) p.trainingPlan = { primary: 'smash', secondary: 'footwork' };
+
+  if (role === 'primary') {
+    if (p.trainingPlan.secondary === statKey) p.trainingPlan.secondary = p.trainingPlan.primary;
+    p.trainingPlan.primary = statKey;
+  } else {
+    if (p.trainingPlan.primary === statKey) p.trainingPlan.primary = p.trainingPlan.secondary;
+    p.trainingPlan.secondary = statKey;
+  }
+
+  saveGame(); renderAll();
+  const name = STAT_DEFS[statKey].name.split(' ')[1];
+  showToast(`📋 已将【${name}】设定为每周${role === 'primary' ? '主修' : '辅修'}训练科目！`);
+};
+
+window.setTrainingPreset = function(presetType) {
+  const p = gameState.player;
+  if (!p.trainingPlan) p.trainingPlan = { primary: 'smash', secondary: 'footwork' };
+
+  if (presetType === 'SMASH') {
+    p.trainingPlan.primary = 'smash'; p.trainingPlan.secondary = 'footwork';
+  } else if (presetType === 'DEFENSE') {
+    p.trainingPlan.primary = 'footwork'; p.trainingPlan.secondary = 'stamina';
+  } else if (presetType === 'NET') {
+    p.trainingPlan.primary = 'netTouch'; p.trainingPlan.secondary = 'deception';
+  } else if (presetType === 'STAMINA') {
+    p.trainingPlan.primary = 'stamina'; p.trainingPlan.secondary = 'injuryRes';
+  }
+
+  saveGame(); renderAll();
+  showToast('⚡ 已成功切换训练方案预设！');
+};
 
 function skipToAge18() {
   const p = gameState.player;
@@ -982,17 +1040,31 @@ function renderDashboard() {
 
 function renderStats() {
   const p = gameState.player;
+  if (!p.trainingPlan) p.trainingPlan = { primary: 'smash', secondary: 'footwork' };
   const cap = getAgeStatCap(p.ageYears);
-  setEl('stat-tp-display', `${p.statPoints} TP (当前 ${p.ageYears} 岁上限: ${cap} 点)`);
+  setEl('stat-tp-display', `${cap} 点`);
+
   const grid = el('stat-allocation-cards');
   if (!grid) return;
 
   grid.innerHTML = Object.entries(STAT_DEFS).map(([key, def]) => {
     const val = p.stats[key];
-    const cost = getStatCost(val);
+    const isPrimary = p.trainingPlan.primary === key;
+    const isSecondary = p.trainingPlan.secondary === key;
     const isAtCap = val >= cap;
 
-    return `<div class="rounded-xl bg-bwf-card border ${isAtCap ? 'border-amber-500/40' : 'border-slate-800'} p-5 space-y-4 font-mono text-xs shadow-xl hover:border-emerald-500/40 transition-all">
+    let borderClass = 'border-slate-800';
+    let badgeHtml = '<span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px]">休整中</span>';
+
+    if (isPrimary) {
+      borderClass = 'border-amber-500/80 shadow-amber-500/10';
+      badgeHtml = '<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/50 font-bold text-[10px]">🔥 主修科目 (+1/周)</span>';
+    } else if (isSecondary) {
+      borderClass = 'border-cyan-500/80 shadow-cyan-500/10';
+      badgeHtml = '<span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 font-bold text-[10px]">⚡ 辅修科目 (+1/双周)</span>';
+    }
+
+    return `<div class="rounded-xl bg-bwf-card border ${borderClass} p-5 space-y-4 font-mono text-xs shadow-xl transition-all">
       <div class="flex items-center justify-between border-b border-slate-800 pb-2">
         <span class="font-bold text-white text-sm">${def.name}</span>
         <div class="text-right">
@@ -1000,15 +1072,24 @@ function renderStats() {
           <span class="text-slate-500 text-[10px]"> / ${cap} Max</span>
         </div>
       </div>
-      <p class="text-slate-400 text-[11px] h-8">${def.desc}</p>
+
+      <div class="flex items-center justify-between">
+        ${badgeHtml}
+        ${isAtCap ? '<span class="text-amber-400 font-bold text-[10px]">🔒 达阶段上限</span>' : ''}
+      </div>
+
+      <p class="text-slate-400 text-[11px] h-7">${def.desc}</p>
 
       <div class="w-full h-2 rounded-full bg-slate-950 border border-slate-800 overflow-hidden">
         <div class="h-full bg-gradient-to-r from-emerald-500 to-amber-400 stat-bar-fill" style="width: ${(val / cap) * 100}%"></div>
       </div>
 
-      <div class="flex items-center gap-2 pt-2">
-        <button onclick="addStatPoint('${key}')" class="w-full py-2.5 rounded-lg ${isAtCap ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'} font-bold shadow-lg shadow-emerald-500/20 transition-all">
-          ${isAtCap ? `🔒 年龄阶段上限 (${cap}点)` : `+1 点 (消耗 ${cost} TP)`}
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button onclick="setTrainingFocus('${key}', 'primary')" class="py-2 rounded-lg ${isPrimary ? 'bg-amber-500 text-slate-950 font-extrabold' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} text-[11px] font-bold transition-all">
+          ${isPrimary ? '🔥 主修中' : '🎯 设为主修'}
+        </button>
+        <button onclick="setTrainingFocus('${key}', 'secondary')" class="py-2 rounded-lg ${isSecondary ? 'bg-cyan-500 text-slate-950 font-extrabold' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} text-[11px] font-bold transition-all">
+          ${isSecondary ? '⚡ 辅修中' : '👟 设为辅修'}
         </button>
       </div>
     </div>`;

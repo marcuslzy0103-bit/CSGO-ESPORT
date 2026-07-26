@@ -119,7 +119,7 @@
           <span>📊 人生面板 & 日程</span>
         </button>
         <button data-tab="stats" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
-          <span>🎯 自由属性加点</span>
+          <span>📋 每周训练规划</span>
         </button>
         <button data-tab="tournaments" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
           <span>📅 自由赛事报名大厅</span>
@@ -253,25 +253,51 @@
 
 
     <!-- ==========================================================================
-         TAB 2: 🎯 自由属性加点 (STAT POINT ALLOCATION)
+         TAB 2: 📋 每周训练规划与自动成长 (WEEKLY TRAINING PLANNER)
          ========================================================================== -->
     <div id="tab-stats" class="tab-content hidden space-y-8">
       
       <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
         <div>
-          <h2 class="text-2xl font-extrabold text-white">自由属性加点系统</h2>
-          <p class="text-slate-400 text-xs mt-1">消耗训练属性点 (TP) 打造独一无二的羽毛球风格（重杀进攻型、全场防守型、网前控球型）！</p>
+          <h2 class="text-2xl font-extrabold text-white">每周训练规划中心</h2>
+          <p class="text-slate-400 text-xs mt-1">布置每周的核心训练科目（主修 + 辅修），每周推进或挂机时会自动按规划成长对应属性！</p>
         </div>
 
         <div class="flex items-center gap-3 font-mono text-xs">
-          <span class="text-slate-400">可用属性点:</span>
-          <span id="stat-tp-display" class="text-amber-400 font-bold text-base">8 TP</span>
+          <span class="text-slate-400">当前属性天花板:</span>
+          <span id="stat-tp-display" class="text-amber-400 font-bold text-base">25 点</span>
         </div>
       </div>
 
-      <!-- 6 大核心加点面板 -->
+      <!-- 一键流派快捷预设 -->
+      <div class="rounded-xl bg-slate-900 border border-slate-800 p-5 space-y-3 font-mono text-xs">
+        <h3 class="font-bold text-emerald-400 uppercase tracking-wider">⚡ 快速选择训练流派预设 (Training Routine Presets)</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <button onclick="setTrainingPreset('SMASH')" class="p-3 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 text-left transition-all">
+            <div class="font-bold text-amber-400">💥 全攻重杀流</div>
+            <div class="text-[11px] text-slate-400 mt-1">主修: 杀球爆发 | 辅修: 身法步法</div>
+          </button>
+
+          <button onclick="setTrainingPreset('DEFENSE')" class="p-3 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/50 text-left transition-all">
+            <div class="font-bold text-emerald-400">🛡️ 全场拉吊流</div>
+            <div class="text-[11px] text-slate-400 mt-1">主修: 身法步法 | 辅修: 体能储备</div>
+          </button>
+
+          <button onclick="setTrainingPreset('NET')" class="p-3 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 text-left transition-all">
+            <div class="font-bold text-cyan-400">🎾 网前控球流</div>
+            <div class="text-[11px] text-slate-400 mt-1">主修: 网前手感 | 辅修: 假动作</div>
+          </button>
+
+          <button onclick="setTrainingPreset('STAMINA')" class="p-3 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-purple-500/50 text-left transition-all">
+            <div class="font-bold text-purple-400">🫁 魔鬼体能流</div>
+            <div class="text-[11px] text-slate-400 mt-1">主修: 体能储备 | 辅修: 抗伤病率</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 6 大核心训练项目面板 -->
       <div id="stat-allocation-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- 动态渲染 6 大属性加点卡片 -->
+        <!-- 动态渲染 6 大训练科目配置卡片 -->
       </div>
 
     </div>
